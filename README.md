@@ -37,13 +37,13 @@ It supports inline file contents, multiline blocks, and even safe previews befor
 ### Using template
 
 <p float="left">
-  <img src="images/3.png" alt="template example 1" width="450" height="400"/>
-  <img src="images/2.png" alt="template example 2" width="450" height="400"/>S
+  <img src="images/3.png" alt="template example 1" width="45%" height="400"/>
+  <img src="images/2.png" alt="template example 2" width="45%" height="400"/>
 </p>
 
 ### Reverse mode
 
-<img src="images/4.png" alt="reverse example" width="450" height="600"/>
+<img src="images/4.png" alt="reverse example" width="45%" height="600"/>
 
 ---
 
