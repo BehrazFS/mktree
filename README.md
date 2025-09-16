@@ -57,6 +57,12 @@ cd mktree
 uv sync   # or pip install -r requirements.txt
 ```
 
+Make the `mktree.py` executable:
+
+```bash
+chmod +x mktree.py
+```
+
 > The project is set up with [uv](https://github.com/astral-sh/uv) and creates a local `.venv` automatically.
 
 ---
