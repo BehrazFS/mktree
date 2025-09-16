@@ -28,14 +28,21 @@ It supports inline file contents, multiline blocks, and even safe previews befor
 ## 🖼️ Screenshots
 
 ### Using .tree file
-<img src="images/5.png" alt="tree file example 1" width="450" height="800"/>
-<img src="images/1.png" alt="tree file example 2" width="450" height="800"/>
+
+<p float="left">
+  <img src="images/5.png" alt="tree file example 1" width="450" height="800"/>
+  <img src="images/1.png" alt="tree file example 2" width="450" height="800"/>
+</p>
 
 ### Using template
-<img src="images/3.png" alt="template example 1" width="450" height="400"/>
-<img src="images/2.png" alt="template example 2" width="450" height="400"/>S
+
+<p float="left">
+  <img src="images/3.png" alt="template example 1" width="450" height="400"/>
+  <img src="images/2.png" alt="template example 2" width="450" height="400"/>S
+</p>
 
 ### Reverse mode
+
 <img src="images/4.png" alt="reverse example" width="450" height="600"/>
 
 ---
