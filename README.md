@@ -96,10 +96,10 @@ python -m mktree --inline "test.txt: some content"
 
 ### 4. Templates
 
-Put `.tree` files into the `templates/` folder. Example: `templates/python.tree`.
+Put `.tree` files into the `templates/` folder. Example: `templates/python-package.tree`.
 
 ```bash
-python -m mktree --template python --output ./myproj
+python -m mktree --template python-package --output ./myproj
 ```
 
 ### 5. Reverse existing directory
