@@ -44,7 +44,7 @@ def get_arguments() -> Dict[str,str]:
     parser.add_argument("-I", "--interactive", action="store_true", help="Launch interactive mode.") # not implemented in this version (coming soon)
     parser.add_argument("-o", "--output", type=str, default=".", help="Base directory to create the tree in (default: current directory).") # done
     parser.add_argument("-r", "--reverse", action="store_true", help="Generate a .tree file from an existing directory.")
-    parser.add_argument("-v", "--version", action="version", version="mktree 1.0.0", help="Show program version.") # done
+    parser.add_argument("-v", "--version", action="version", version="mktree 0.1.0", help="Show program version.") # done
     parser.add_argument("-n", "--no-content", action="store_true",help="When reversing, do not include file contents in the .tree output.") # done
 
     args = parser.parse_args()
