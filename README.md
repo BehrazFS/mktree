@@ -30,8 +30,8 @@ It supports inline file contents, multiline blocks, and even safe previews befor
 ### Using .tree file
 
 <p float="left">
-  <img src="images/5.png" alt="tree file example 1" width="450" height="800"/>
-  <img src="images/1.png" alt="tree file example 2" width="450" height="800"/>
+  <img src="images/5.png" alt="tree file example 1" width="45%" height="800"/>
+  <img src="images/1.png" alt="tree file example 2" width="45%" height="800"/>
 </p>
 
 ### Using template
