@@ -1,0 +1,9 @@
+# Python project structure
+myapp
+  src
+    main.py
+    utils
+      __init__.py
+  # Tests go here
+  tests
+    test_main.py

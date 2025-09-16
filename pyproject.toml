@@ -1,0 +1,11 @@
+[project]
+name = "mktree"
+version = "1.0.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "argparse>=1.4.0",
+    "rich>=14.1.0",
+    "textual>=6.1.0",
+]

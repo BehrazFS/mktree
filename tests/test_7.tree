@@ -1,0 +1,8 @@
+website
+  index.html:|
+    <!DOCTYPE html>
+    <html>
+    <body>Hello World</body>
+    </html>
+  style.css
+  .gitignore: __pycache__/

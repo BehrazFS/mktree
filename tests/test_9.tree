@@ -1,0 +1,48 @@
+# Complex test for mktree parser
+project
+  src
+    main.py:|
+      # Main Python file
+      def main():
+          print("Hello, World!")
+      if __name__ == "__main__":
+          main()
+    utils
+      __init__.py
+      helpers.py:|
+        # Helper functions
+        def add(a, b):
+            return a + b
+      config.py: config_setting = True
+  tests
+    test_main.py:|
+      import unittest
+      from src.main import main
+      
+      class TestMain(unittest.TestCase):
+          def test_dummy(self):
+              self.assertEqual(1, 1)
+  docs
+    README.md:|
+      # Project Documentation
+      This is a test for mktree parser.
+    CHANGELOG.md: Initial version
+  .gitignore:|
+    __pycache__/
+    *.pyc
+    .env
+  LICENSE: MIT
+  setup.py:|
+    from setuptools import setup, find_packages
+    setup(
+        name="project",
+        version="0.1",
+        packages=find_packages(),
+    )
+  data
+    raw
+      sample1.csv
+      sample2.csv
+    processed
+      empty.txt
+  # End of tree

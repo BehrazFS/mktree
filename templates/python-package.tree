@@ -1,0 +1,11 @@
+my-project
+  src
+    mypackage
+      __init__.py
+      main.py
+  tests/
+    test_main.py
+  pyproject.toml
+  README.md
+  .gitignore
+  requirements.txt
