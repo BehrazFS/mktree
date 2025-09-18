@@ -62,7 +62,15 @@ Make the `mktree.py` executable:
 ```bash
 chmod +x mktree.py
 ```
+To make mktree available system-wide, add the following line to your `.zshrc` or `.bashrc` file:
+```
+alias mktree='path_to_mktree/mktree/src/mktree.py'
+```
 
+This lets you run `mktree` from anywhere without specifying its full path. After adding the alias, reload your shell with:
+```bash
+source ~/.zshrc   # or source ~/.bashrc
+```
 > The project is set up with [uv](https://github.com/astral-sh/uv) and creates a local `.venv` automatically.
 
 ---
@@ -130,6 +138,8 @@ Binary files are skipped or marked as <binary file> in the .tree output.
 | `-V, --verbose`   | Verbose output |
 | `-q, --quiet`     | Quiet mode (minimal output) |
 | `-v, --version`   | Show version info |
+| `-b, --binary`    | (Not yet implemented) In reverse mode Include small binary files |
+| `-l, --no-limit`  | Do not truncate text file contents |
 
 ---
 
@@ -158,7 +168,7 @@ project
 ## 📝 Available templates
 
 - `python-package` : a simple python package structure
-
+- `c++-project` : a simple c++ project structure
 > more will be added in the future
 ---
 
@@ -177,6 +187,7 @@ python -m mktree example.tree --verbose --dry-run
 - [ ] Implement `--clean` (remove generated structure).  
 - [ ] Implement `--interactive` mode.  
 - [ ] Add more templates.  
+- [ ] Implement `--binary` (In reverse mode Include small binary files)
 
 > 💡 Contributions welcome!  
 > Found a bug, have a feature idea, or want to add a template? Open an issue or submit a pull request on GitHub — help make **mktree** even better!

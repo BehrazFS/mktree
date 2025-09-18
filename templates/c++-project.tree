@@ -1,0 +1,9 @@
+my-cpp-project
+  src
+    main.cpp
+  include
+    utils.h
+  obj
+  bin
+  Makefile
+  README.md
