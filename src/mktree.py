@@ -266,7 +266,7 @@ def build_tree_from_directory(path: str, no_content: bool = False, no_limit: boo
         for entry in sorted(os.listdir(path)):
             full_path = os.path.join(path, entry)
             if os.path.isdir(full_path):
-                node.children.append(build_tree_from_directory(full_path, no_content, size_limit))
+                node.children.append(build_tree_from_directory(full_path, no_content, no_limit, size_limit))
             else:
                 if no_content:
                     content = None
