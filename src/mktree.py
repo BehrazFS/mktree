@@ -46,6 +46,8 @@ def get_arguments() -> Dict[str,str]:
     parser.add_argument("-r", "--reverse", action="store_true", help="Generate a .tree file from an existing directory.")
     parser.add_argument("-v", "--version", action="version", version="mktree 0.1.0", help="Show program version.") # done
     parser.add_argument("-n", "--no-content", action="store_true",help="When reversing, do not include file contents in the .tree output.") # done
+    parser.add_argument("-b", "--binary", action="store_true", help="Include small binary files as base64 in .tree output.") # not implemented in this version
+    parser.add_argument("-l", "--no-limit", action="store_true", help="Do not truncate text file contents regardless of size.") # done
 
     args = parser.parse_args()
     return vars(args)
@@ -76,15 +78,12 @@ def parse_entry(line: str) -> Tuple[str, Optional[str]]:
         return line.strip(), None
 
 def detect_type(name: str, content: Optional[str]) -> str:
-    """ 
-    Detect if entry is a file or directory.
-    If content is provided or name has an extension, it's a file.
-    Otherwise, it's a directory.
-    """
-    if content is not None or '.' in name:
+    """Detect if entry is a file or directory."""
+    if content is not None or '.' in name or name in {"Makefile", "Dockerfile", "Vagrantfile"}:
         return 'file'
     else:
         return 'dir'
+
 
 def read_multiline_content(lines: List[str], start_index: int, base_indent: int) -> Tuple[str, int]:
     """
@@ -253,7 +252,7 @@ def is_binary_file(path: str, blocksize: int = 1024) -> bool:
     return float(len(nontext)) / max(len(chunk), 1) > 0.30
 
 
-def build_tree_from_directory(path: str, no_content: bool = False, size_limit: int = 1_000_000) -> Node:
+def build_tree_from_directory(path: str, no_content: bool = False, no_limit: bool = False, size_limit: int = 1_000_000) -> Node:
     """
     Recursively walk a directory and return a Node tree.
     """
@@ -273,7 +272,7 @@ def build_tree_from_directory(path: str, no_content: bool = False, size_limit: i
                     content = None
                 elif is_binary_file(full_path):
                     content = "<binary file>"
-                elif os.path.getsize(full_path) < size_limit:
+                elif (os.path.getsize(full_path) < size_limit) or no_limit:
                     with open(full_path, "r", encoding="utf-8", errors="ignore") as f:
                         content = f.read()
                 else:
@@ -331,7 +330,7 @@ if __name__ == "__main__":
             dir_path = args['tree_file']
             if not os.path.isdir(dir_path):
                 raise NotADirectoryError(f"'{dir_path}' is not a valid directory.")
-            tree = build_tree_from_directory(dir_path, no_content=args.get("no_content", False))
+            tree = build_tree_from_directory(dir_path, no_content=args.get("no_content", False), no_limit=args.get("no_limit", False))
             tree_lines = node_to_tree_lines(tree)
             output_str = "\n".join(tree_lines)
             log(f"[bold green]Generated .tree structure from '{dir_path}':[/]\n", v_level=2)
