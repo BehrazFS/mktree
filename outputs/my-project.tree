@@ -1,5 +1,6 @@
-my-project
+my-project-2
   .gitignore
+  Makefile
   README.md
   pyproject.toml
   requirements.txt
