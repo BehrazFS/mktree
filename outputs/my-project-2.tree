@@ -1,0 +1,12 @@
+my-project-2
+  .gitignore
+  .mktreeignore:|
+    tests
+    requirements.txt
+    # comment
+    *.py
+  Makefile
+  README.md
+  pyproject.toml
+  src
+    mypackage

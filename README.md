@@ -22,6 +22,7 @@ It supports inline file contents, multiline blocks, and even safe previews befor
   - Multiline blocks (`file.py:|` … indented content …)  
 - **Binary-aware reverse**: detects binaries and skips or replaces content with `<binary file>`.  
 - **Configurable verbosity**: `--verbose` or `--quiet` modes.  
+- **`.mktreeignore` support**: ignore files or directories when using --reverse to generate a `.tree` file.
 
 ---
 
@@ -64,7 +65,7 @@ chmod +x mktree.py
 ```
 To make mktree available system-wide, add the following line to your `.zshrc` or `.bashrc` file:
 ```
-alias mktree='path_to_mktree/mktree/src/mktree.py'
+alias mktree='absolute_path_to_mktree/mktree/src/mktree.py'
 ```
 
 This lets you run `mktree` from anywhere without specifying its full path. After adding the alias, reload your shell with:
@@ -118,6 +119,24 @@ python -m mktree my_project --reverse --no-content
 
 This generates `my_project.tree` describing the structure. <br>
 Binary files are skipped or marked as <binary file> in the .tree output.
+
+**`.mktreeignore` Support**
+
+You can define files or directories to **ignore** when generating a `.tree` file from an existing directory.  
+
+Create a `.mktreeignore` file in the **root of your project**, with each line specifying a pattern (supports `*` wildcards):
+
+**Example `.mktreeignore`:**
+```
+cache
+temp.txt
+# comment
+*.log
+```
+- mktree will skip all files or directories matching patterns in `.mktreeignore`.
+- Wildcards are supported (e.g., *.log).
+- Ignored entries are logged only in verbose mode (--verbose).
+- only one pattern per line is allowed in `.mktreeignore` file.
 
 ---
 

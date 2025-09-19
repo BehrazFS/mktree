@@ -2,19 +2,20 @@
 import os, sys
 
 # Re-run using venv’s Python if not already inside it
-project_path = os.path.dirname(__file__)[:-4]
-venv_python = (project_path + "/.venv/bin/python3")
-if sys.executable != venv_python:
+project_path = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+venv_python = os.path.join(project_path, ".venv", "bin", "python3")
+if sys.executable != venv_python and os.path.exists(venv_python):
     os.execv(venv_python, [venv_python] + sys.argv)
 
 import argparse
-from typing import List,Dict,Optional,Tuple
+from typing import List,Dict,Optional,Tuple,Set
 from dataclasses import dataclass, field
 from rich.traceback import install
 from rich import print as rprint
 from rich.text import Text
 from rich.console import Console
 from rich.tree import Tree
+from fnmatch import fnmatch
 install(show_locals=True)
 console = Console()
 verbosity_level = 1
@@ -251,8 +252,15 @@ def is_binary_file(path: str, blocksize: int = 1024) -> bool:
     nontext = chunk.translate(None, text_chars)
     return float(len(nontext)) / max(len(chunk), 1) > 0.30
 
+def match_entry(entry: str, ignore_set: Set[str]) -> bool:
+    """ Check if entry matches any pattern in ignore_set. """
+    for pattern in ignore_set:
+        if fnmatch(entry, pattern):
+            rprint(f"[yellow]Matched[/] ignore pattern: [blue]{pattern}[/] for entry: [blue]{entry}[/]")
+            return True
+    return False
 
-def build_tree_from_directory(path: str, no_content: bool = False, no_limit: bool = False, size_limit: int = 1_000_000) -> Node:
+def build_tree_from_directory(path: str, no_content: bool = False, no_limit: bool = False, size_limit: int = 1_000_000, mktree_ignore_set: Set[str] = None) -> Node:
     """
     Recursively walk a directory and return a Node tree.
     """
@@ -264,9 +272,12 @@ def build_tree_from_directory(path: str, no_content: bool = False, no_limit: boo
 
     try:
         for entry in sorted(os.listdir(path)):
+            if mktree_ignore_set and match_entry(entry, mktree_ignore_set):
+                log(f"[yellow]Ignoring:[/] {os.path.join(path, entry)} (in .mktreeignore)", v_level=2)
+                continue
             full_path = os.path.join(path, entry)
             if os.path.isdir(full_path):
-                node.children.append(build_tree_from_directory(full_path, no_content, no_limit, size_limit))
+                node.children.append(build_tree_from_directory(full_path, no_content, no_limit, size_limit, mktree_ignore_set))
             else:
                 if no_content:
                     content = None
@@ -330,16 +341,23 @@ if __name__ == "__main__":
             dir_path = args['tree_file']
             if not os.path.isdir(dir_path):
                 raise NotADirectoryError(f"'{dir_path}' is not a valid directory.")
-            tree = build_tree_from_directory(dir_path, no_content=args.get("no_content", False), no_limit=args.get("no_limit", False))
+            if os.path.exists(os.path.join(dir_path, ".mktreeignore")):
+                with open(os.path.join(dir_path, ".mktreeignore"), "r", encoding="utf-8") as f:
+                    mktree_ignore_set = set(line.strip() for line in f if line.strip() and not line.startswith("#"))
+                log(f"[blue]Loaded .mktreeignore with {len(mktree_ignore_set)} entries.[/]", v_level=2)
+            else:
+                log(f"[yellow]No .mktreeignore found, skipping.[/]", v_level=2)
+                mktree_ignore_set = None
+            tree = build_tree_from_directory(dir_path, no_content=args.get("no_content", False), no_limit=args.get("no_limit", False), mktree_ignore_set=mktree_ignore_set)
             tree_lines = node_to_tree_lines(tree)
             output_str = "\n".join(tree_lines)
-            log(f"[bold green]Generated .tree structure from '{dir_path}':[/]\n", v_level=2)
-            log(output_str, v_level=2)
+            log(f"[bold green]Generated .tree structure from '{dir_path}':[/]\n", v_level=1)
+            log(output_str, v_level=1)
             if not args.get("dry_run", False):
                 output_file = os.path.join(args.get("output", "."), f"{os.path.basename(dir_path)}.tree")
                 with open(output_file, "w", encoding="utf-8") as f:
                     f.write(output_str)
-                log(f"\n[bold blue]Saved to:[/] {output_file}", v_level=2)
+                log(f"\n[bold blue]Saved to:[/] {output_file}", v_level=1)
             sys.exit(0)
         if args['template']:
             template_path: str = project_path + "/templates"
