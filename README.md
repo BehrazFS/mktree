@@ -188,6 +188,7 @@ project
 
 - `python-package` : a simple python package structure
 - `c++-project` : a simple c++ project structure
+- `vhdl-project` : a simple vhdl simulation project structure (using ghdl)
 > more will be added in the future
 ---
 
