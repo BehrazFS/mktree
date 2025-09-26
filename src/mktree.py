@@ -80,7 +80,10 @@ def parse_entry(line: str) -> Tuple[str, Optional[str]]:
 
 def detect_type(name: str, content: Optional[str]) -> str:
     """Detect if entry is a file or directory."""
-    if content is not None or '.' in name or name in {"Makefile", "Dockerfile", "Vagrantfile"}:
+    hidden_folders = {".vscode", ".git", ".idea", ".config", ".cache"}
+    if name in hidden_folders:
+        return 'dir'
+    elif content is not None or '.' in name or name in {"Makefile", "Dockerfile", "Vagrantfile"}:
         return 'file'
     else:
         return 'dir'

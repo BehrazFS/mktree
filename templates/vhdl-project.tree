@@ -1,0 +1,175 @@
+vhdl_project
+  .vscode
+    settings.json:|
+      {
+        "files.associations": {
+          "*.vhd": "vhdl",
+          "*.vhdl": "vhdl"
+        },
+        "vhdl.linter.enabled": true,
+        "vhdl.formatter.enabled": true
+      }
+    tasks.json:|
+      {
+        "version": "2.0.0",
+        "label": "Run VHDL Testbench",
+        "type": "shell",
+        "command": "make",
+        "args": ["TOP=${input:testbench}"],
+        "group": {
+          "kind": "build",
+          "isDefault": true
+        },
+        "problemMatcher": [],
+        "inputs": [
+          {
+            "id": "testbench",
+            "type": "promptString",
+            "description": "Enter top-level testbench (e.g. alu_tb, regfile_tb)",
+            "default": "main_tb"
+          }
+        ]
+      }
+  Makefile:|
+    # Project Makefile for GHDL + GTKWave
+    # space separated list of source files
+    SRC       := src/main.vhd
+    TB_DIR    := tb
+    WAVE_DIR  := waves
+    GHDL_STD  := --std=08
+    
+    # Default simulation time
+    SIM_TIME  := 500ns
+    
+    # Default top-level (can be overridden)
+    TOP       ?= main_tb
+    
+    # Phony targets
+    .PHONY: all analyze elab run wave clean
+    
+    all: run wave
+    
+    # Analyze (compile) all VHDL files
+    analyze:
+    	ghdl -a $(GHDL_STD) --work=work $(SRC) 
+    	ghdl -a $(GHDL_STD) --work=work $(TB_DIR)/*.vhd
+    
+    # Elaborate top-level testbench
+    elab: analyze
+    	ghdl -e $(GHDL_STD) --work=work $(TOP)
+    
+    # Run simulation and generate waveform
+    run: elab
+    	mkdir -p $(WAVE_DIR)
+    	ghdl -r $(GHDL_STD) --work=work $(TOP) --stop-time=$(SIM_TIME) --wave=$(WAVE_DIR)/$(TOP).ghw
+    
+    # Launch GTKWave
+    wave:
+    	@if [ -f $(WAVE_DIR)/$(TOP).gtkw ]; then \
+    		gtkwave $(WAVE_DIR)/$(TOP).ghw $(WAVE_DIR)/$(TOP).gtkw & \
+    	else \
+    		gtkwave $(WAVE_DIR)/$(TOP).ghw & \
+    	fi
+    
+    # Clean all generated files
+    clean:
+    	rm -f *.o *.cf $(TB_DIR)/*.o $(TB_DIR)/*.cf $(TOP) $(WAVE_DIR)/*.ghw
+    # run "make clean" to remove all generated files
+    # run "make TOP=entityName" to compile, elaborate, run and view waveforms
+
+  src
+    main.vhd:|
+      library IEEE;
+      use IEEE.STD_LOGIC_1164.ALL;
+      
+      entity FA is
+          Port (
+              A    : in  STD_LOGIC;
+              B    : in  STD_LOGIC;
+              Cin  : in  STD_LOGIC;
+              Sum  : out STD_LOGIC;
+              Cout : out STD_LOGIC
+          );
+      end FA;
+      architecture Behavioral of FA is
+      begin
+          Sum  <= A XOR B XOR Cin;
+          Cout <= (A AND B) OR (B AND Cin) OR (A AND Cin);
+      end Behavioral;
+  tb
+    main_tb.vhd:|
+      library ieee;
+      use ieee.std_logic_1164.all;
+      
+      entity fa_tb is
+      end fa_tb;
+      
+      architecture TB_ARCHITECTURE of fa_tb is
+      
+      	-- Component declaration of the tested unit
+      	component fa
+      		port(
+      			A    : in  STD_LOGIC;
+      			B    : in  STD_LOGIC;
+      			Cin  : in  STD_LOGIC;
+      			Sum  : out STD_LOGIC;
+      			Cout : out STD_LOGIC
+      		);
+      	end component;
+      
+      	-- Stimulus signals
+      	signal A    : STD_LOGIC := '0';
+      	signal B    : STD_LOGIC := '0';
+      	signal Cin  : STD_LOGIC := '0';
+      	signal Sum  : STD_LOGIC;
+      	signal Cout : STD_LOGIC;
+      
+      begin
+      
+      	-- Unit Under Test port map
+      	UUT : fa
+      		port map (
+      			A    => A,
+      			B    => B,
+      			Cin  => Cin,
+      			Sum  => Sum,
+      			Cout => Cout
+      		);
+      
+      	-- Stimulus process
+      	stim_proc: process
+      	begin
+      		-- Try all 8 combinations
+      		A <= '0'; B <= '0'; Cin <= '0'; wait for 10 ns;
+      		A <= '0'; B <= '0'; Cin <= '1'; wait for 10 ns;
+      		A <= '0'; B <= '1'; Cin <= '0'; wait for 10 ns;
+      		A <= '0'; B <= '1'; Cin <= '1'; wait for 10 ns;
+      		A <= '1'; B <= '0'; Cin <= '0'; wait for 10 ns;
+      		A <= '1'; B <= '0'; Cin <= '1'; wait for 10 ns;
+      		A <= '1'; B <= '1'; Cin <= '0'; wait for 10 ns;
+      		A <= '1'; B <= '1'; Cin <= '1'; wait for 10 ns;
+      
+      		-- Stop simulation
+      		wait;
+      	end process;
+      
+      end TB_ARCHITECTURE;
+      
+      -- Configuration
+      configuration TESTBENCH_FOR_fa of fa_tb is
+      	for TB_ARCHITECTURE
+      		for UUT : fa
+      			use entity work.fa(behavioral);  
+      		end for;
+      	end for;
+      end TESTBENCH_FOR_fa;
+  vhdl_ls.toml:|
+    [workspace]
+    libraries = { work = "src" }
+    
+    [analysis]
+    include_dirs = ["src"]
+    
+    [server]
+    trace = false
+  waves
