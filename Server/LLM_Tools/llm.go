@@ -69,7 +69,7 @@ func NewLLM(model, systemPrompt string, supportsReasoning bool) *LLM {
 		SystemPrompt:      systemPrompt,
 		Stream:            false,
 		MaxTokens:         65536,
-		Temperature:       0.5,
+		Temperature:       0.1,
 		TopP:              1.0,
 		ReasoningEffort:   re,
 		SupportsReasoning: supportsReasoning,

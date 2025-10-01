@@ -4,8 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	llms "mktree/LLM_Tools"
 	"net/http"
+
+	llms "mktree/LLM_Tools"
+
+	"github.com/google/uuid"
 )
 
 // Input represents the expected request structure
@@ -22,11 +25,15 @@ type Output struct {
 }
 
 // Server handles HTTP requests for LLM operations
-type Server struct{}
+type Server struct {
+	log *log.Logger
+}
 
 // NewServer creates a new server instance
 func NewServer() *Server {
-	return &Server{}
+	return &Server{
+		log: log.Default(), // or log.New(os.Stdout, "", log.LstdFlags)
+	}
 }
 
 // ProcessTreeHandler handles the main processing endpoint
@@ -38,15 +45,26 @@ func (s *Server) ProcessTreeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Generate a unique request ID
+	reqID := uuid.New().String()
+	remoteAddr := r.RemoteAddr
+
+	// Log the incoming request with req_id
+	s.log.Printf("[REQ_ID: %s] Incoming request from <%s>", reqID, remoteAddr)
+
 	var input Input
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		log.Printf("[REQ_ID: %s] Invalid JSON input: %v", reqID, err)
 		http.Error(w, "Invalid JSON input", http.StatusBadRequest)
 		return
 	}
 
-	// Call your AgentProcess function - assuming it returns (string, error)
-	result, err := llms.AgentProcess(input.Tree, input.Prompt, input.OperationType)
+	// Optional: Create a context with req_id for deeper logging or tracing
+
+	// Call your AgentProcess function - now accepts req_id and context
+	result, changes, err := llms.AgentProcess(s.log, input.Tree, input.Prompt, input.OperationType, reqID)
 	if err != nil {
+		s.log.Printf("[REQ_ID: %s] Agent processing failed: %v", reqID, err)
 		http.Error(w, fmt.Sprintf("Agent processing failed: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -58,19 +76,20 @@ func (s *Server) ProcessTreeHandler(w http.ResponseWriter, r *http.Request) {
 	// Try to parse the result as JSON, if it fails, use it as a plain string
 	if err := json.Unmarshal([]byte(result), &processedTree); err != nil {
 		processedTree = result // Use as plain string
-		extraInfo = "Processing completed with plain text result"
+		extraInfo = fmt.Sprintf("{changes: %s}", changes)
 	} else {
-		extraInfo = "Processing completed successfully"
+		extraInfo = fmt.Sprintf("{changes: %s}", changes)
 	}
 
-	// Prepare output
+	// Prepare output with req_id
 	output := Output{
 		Tree:      processedTree,
 		ExtraInfo: extraInfo,
 	}
+	s.log.Printf("[REQ_ID: %s] The result has been sent %v", reqID, err)
 
 	if err := json.NewEncoder(w).Encode(output); err != nil {
-		log.Printf("Error encoding response: %v", err)
+		s.log.Printf("[REQ_ID: %s] Error encoding response: %v", reqID, err)
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
 	}
@@ -80,8 +99,8 @@ func (s *Server) ProcessTreeHandler(w http.ResponseWriter, r *http.Request) {
 func (s *Server) StartServer(port string) {
 	http.HandleFunc("/process", s.ProcessTreeHandler)
 
-	log.Printf("Server starting on port %s", port)
+	s.log.Printf("Server starting on port %s", port)
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
-		log.Fatalf("Server failed to start: %v", err)
+		s.log.Fatalf("Server failed to start: %v", err)
 	}
 }
