@@ -10,29 +10,28 @@ import (
 
 const SystemPrompt = `
 
-You are a codebase analysis assistant.
-Given a user query and a current .tree file representing a codebase structure, generate exactly 3 meaningful search queries that connect the user's request with the codebase structure:
+You are a codebase analysis assistant.  
+Given a user query, an optional Q&A section, and a current .tree file representing a codebase structure, generate exactly 3 meaningful search queries that connect the user's request with the codebase structure:
 
-"task_query" – The main coding task or feature the user wants to implement or modify.
+- "task_query" – The main coding task or feature the user wants to implement or modify.  
+- "technology_query" – The specific technologies, frameworks, or programming languages relevant to the task.  
+- "codebase_query" – The file or directory structure patterns, filenames, or components in the .tree that need to be modified or used.  
 
-"technology_query" – The specific technologies, frameworks, or programming languages relevant to the task.
+Notes:  
+1. The optional Q&A input may contain clarifications where the LLM asked questions about missing data, and the user provided answers. Incorporate this information if present.  
+2. If you cannot extract all 3 queries directly from the user input (including Q&A), do not invent details. Instead, create search queries that aim to find best practices for the requested task (e.g., if the user asks for a "fast API," search for best practices about FastAPI usage).  
 
-"codebase_query" – The file or directory structure patterns, filenames, or components in the .tree that need to be modified or used.
+The .tree file contains the hierarchical structure of the current project, using these conventions:  
+- Indentation with two spaces = subfolder depth.  
+- A "." in the name indicates a file.  
+- ":|" indicates the content block of that file.  
 
-The .tree file contains the hierarchical structure of the current project, using these conventions:
+Preserve and include essential imports and boilerplate needed for the technology (e.g., Python imports, VHDL entity declarations).  
+Use the .tree context to make the search queries specific to the actual codebase layout.  
 
-Indentation with two spaces = subfolder depth.
+Output the three queries strictly in JSON format with the keys exactly as above.  
+Do NOT output markdown formatting, explanations, or commentary.  
 
-A "." in the name indicates a file.
-
-":|" indicates the content block of that file.
-
-Preserve and include essential imports and boilerplate needed for the technology (e.g., Python imports, VHDL entity declarations).
-
-Use the .tree context to make the search queries specific to the actual codebase layout.
-
-Output the three queries strictly in JSON format with the keys exactly as above.
-Do NOT output markdown formatting, explanations, or commentary.
 `
 
 // SearchResult is the scraped/search result used by SearchLLM
@@ -172,10 +171,10 @@ func (s *SearchLLM) SearchTool(query string) ([]SearchResult, error) {
 	return results, nil
 }
 
-func (s *SearchLLM) ProcessUserInput(input string, curr_tree string) (map[string]string, error) {
+func (s *SearchLLM) ProcessUserInput(input string, curr_tree string, QA string) (map[string]string, error) {
 
 	// Compose prompt for LLM
-	prompt := fmt.Sprintf("User query: %s\nCurrent project tree: %s", input, curr_tree)
+	prompt := fmt.Sprintf("User query: %s\nCurrent project tree: %s\n Q&A: %s", input, curr_tree, QA)
 	resp, err := s.Base.Call(prompt) // TODO: hook this to your actual LLM API
 	if err != nil {
 		return nil, fmt.Errorf("failed to get queries from LLM: %w", err)
@@ -190,9 +189,9 @@ func (s *SearchLLM) ProcessUserInput(input string, curr_tree string) (map[string
 
 	return queries, nil
 }
-func (s *SearchLLM) Call(userInput string, curr_tree string) (string, error) {
+func (s *SearchLLM) Call(userInput string, curr_tree string, QA string) (string, error) {
 	// Step 1: Get queries from LLM
-	queries, err := s.ProcessUserInput(userInput, curr_tree)
+	queries, err := s.ProcessUserInput(userInput, curr_tree, QA)
 	// fmt.Println(queries)
 	if err != nil {
 		return "", err
