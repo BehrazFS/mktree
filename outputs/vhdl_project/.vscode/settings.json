@@ -1,0 +1,8 @@
+{
+  "files.associations": {
+    "*.vhd": "vhdl",
+    "*.vhdl": "vhdl"
+  },
+  "vhdl.linter.enabled": true,
+  "vhdl.formatter.enabled": true
+}

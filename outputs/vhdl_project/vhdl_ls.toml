@@ -1,0 +1,8 @@
+[workspace]
+libraries = { work = "src" }
+
+[analysis]
+include_dirs = ["src"]
+
+[server]
+trace = false

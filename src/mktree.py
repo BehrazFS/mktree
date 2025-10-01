@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import json
 import os, sys
 
 # Re-run using venv’s Python if not already inside it
@@ -7,6 +8,7 @@ venv_python = os.path.join(project_path, ".venv", "bin", "python3")
 if sys.executable != venv_python and os.path.exists(venv_python):
     os.execv(venv_python, [venv_python] + sys.argv)
 
+from rich.prompt import Confirm
 import argparse
 from typing import List,Dict,Optional,Tuple,Set
 from dataclasses import dataclass, field
@@ -17,8 +19,10 @@ from rich.console import Console
 from rich.tree import Tree
 from fnmatch import fnmatch
 install(show_locals=True)
-console = Console()
-verbosity_level = 1
+console: Console = Console()
+verbosity_level: int = 1
+HIDDEN_FOLDERS: Set[str] = set()
+SPECIAL_FILES: Set[str] = set()
 
 def get_arguments() -> Dict[str,str]:
     """ Parse command-line arguments and return them as a dictionary."""
@@ -78,16 +82,24 @@ def parse_entry(line: str) -> Tuple[str, Optional[str]]:
     else:
         return line.strip(), None
 
+def get_file_folder_sets():
+    """ Load hidden folders and special files from config JSON. """
+    global HIDDEN_FOLDERS, SPECIAL_FILES
+    json_config_path = os.path.join(project_path, "src/configs/file_types.json")
+    with open(json_config_path, 'r') as f:
+        config = json.load(f)
+    HIDDEN_FOLDERS = set(config.get("hiddenFolders", []))
+    SPECIAL_FILES = set(config.get("specialFiles", []))
+    log(f"[blue]Loaded config:[/] {len(HIDDEN_FOLDERS)} hidden folders, {len(SPECIAL_FILES)} special files.", v_level=2)
+
 def detect_type(name: str, content: Optional[str]) -> str:
     """Detect if entry is a file or directory."""
-    hidden_folders = {".vscode", ".git", ".idea", ".config", ".cache"}
-    if name in hidden_folders:
+    if name in HIDDEN_FOLDERS:
         return 'dir'
-    elif content is not None or '.' in name or name in {"Makefile", "Dockerfile", "Vagrantfile"}:
+    elif content is not None or '.' in name or name in SPECIAL_FILES:
         return 'file'
     else:
         return 'dir'
-
 
 def read_multiline_content(lines: List[str], start_index: int, base_indent: int) -> Tuple[str, int]:
     """
@@ -107,11 +119,14 @@ def read_multiline_content(lines: List[str], start_index: int, base_indent: int)
         i += 1
     return ''.join(content_lines), i
 
-def parse_tree_file(file_path: str) -> Node:
-    """ Parse a .tree file and return the root Node. """
+def read_tree_file(file_path: str) -> List[str]:
+    """ Read a .tree file and return its lines. """
     with open(file_path, 'r') as f:
         lines = f.readlines()
+    return lines
 
+def generate_tree_of_nodes_from_list_of_lines(lines: List[str]) -> Node:
+    """ Generate a tree of Nodes from a list of lines. """
     root_node: Node = Node(name="$ROOT", type="dir")
     stack: List[Node] = [root_node]
     i: int = 0
@@ -149,46 +164,16 @@ def parse_tree_file(file_path: str) -> Node:
 
     return root_node
 
-def parse_tree_inline(tree: str) -> Node:
+def generate_tree_of_nodes_from_tree_file(file_path: str) -> Node:
+    """ Parse a .tree file and return the root Node. """
+    lines = read_tree_file(file_path)
+    return generate_tree_of_nodes_from_list_of_lines(lines)
+
+def generate_tree_of_nodes_from_inline_tree(tree: str) -> Node:
     """ Parse an inline tree string and return the root Node. """
     lines = tree.splitlines()
-    root_node: Node = Node(name="$ROOT", type="dir")
-    stack: List[Node] = [root_node]
-    i: int = 0
-
-    while i < len(lines):
-        line: str = lines[i]
-        if line.strip() == "" or line.strip().startswith("#"):
-            i += 1
-            continue
-
-        indent: int = count_leading_spaces(line) // 2
-        name, content_indicator = parse_entry(line)
-
-        node_type: str = detect_type(name, content_indicator)
-        node: Node = Node(name=name, type=node_type)
-
-        if content_indicator == ':|':  # multiline content
-            node.content, next_i = read_multiline_content(lines, i+1, indent)
-            i = next_i
-        elif content_indicator is not None:  # single-line content
-            node.content = content_indicator
-            i += 1
-        else:
-            i += 1
-
-        # adjust stack to correct parent
-        while indent < len(stack) - 1:
-            stack.pop()
-
-        parent: Node = stack[-1]
-        parent.children.append(node)
-
-        if node.type == "dir":
-            stack.append(node)
-
-    return root_node
-
+    return generate_tree_of_nodes_from_list_of_lines(lines)
+    
 # Deprecated: simple print function
 def print_tree(node, prefix=""):
     """ Recursively print the tree structure to console.(Deprecated) """
@@ -201,7 +186,7 @@ def print_tree(node, prefix=""):
             for line in content_lines:
                 print(f"{prefix}    📝 {line}")
 
-def build_rich_tree(node: Node) -> Tree:
+def generate_rich_tree_from_tree_of_nodes(node: Node) -> Tree:
     """
     Recursively convert Node hierarchy into a Rich Tree.
     """
@@ -210,7 +195,7 @@ def build_rich_tree(node: Node) -> Tree:
     
     for child in node.children:
         if child.type == "dir":
-            tree.add(build_rich_tree(child))
+            tree.add(generate_rich_tree_from_tree_of_nodes(child))
         else:
             if child.content:
                 # For files with content, add the content as child nodes
@@ -220,7 +205,7 @@ def build_rich_tree(node: Node) -> Tree:
                 tree.add(f"📄[green]{child.name}[/]")
     return tree
 
-def create_tree(node: Node, base_path: str, force:bool = False) -> None:
+def create_directories_and_files_from_tree_of_nodes(node: Node, base_path: str, force:bool = False) -> None:
     """
     Recursively create directories and files on disk from Node tree.
     Supports --force, and --output.
@@ -241,7 +226,7 @@ def create_tree(node: Node, base_path: str, force:bool = False) -> None:
                     if node.content:
                         f.write(node.content)
     for child in node.children:
-        create_tree(child, full_path, force=force)
+        create_directories_and_files_from_tree_of_nodes(child, full_path, force=force)
 
 def is_binary_file(path: str, blocksize: int = 1024) -> bool:
     """ heuristic to detect binary files"""
@@ -255,15 +240,15 @@ def is_binary_file(path: str, blocksize: int = 1024) -> bool:
     nontext = chunk.translate(None, text_chars)
     return float(len(nontext)) / max(len(chunk), 1) > 0.30
 
-def match_entry(entry: str, ignore_set: Set[str]) -> bool:
+def is_entry_in_ignore_set(entry: str, ignore_set: Set[str]) -> bool:
     """ Check if entry matches any pattern in ignore_set. """
     for pattern in ignore_set:
         if fnmatch(entry, pattern):
-            rprint(f"[yellow]Matched[/] ignore pattern: [blue]{pattern}[/] for entry: [blue]{entry}[/]")
+            log(f"[yellow]Matched[/] ignore pattern: [blue]{pattern}[/] for entry: [blue]{entry}[/]", v_level=2)
             return True
     return False
 
-def build_tree_from_directory(path: str, no_content: bool = False, no_limit: bool = False, size_limit: int = 1_000_000, mktree_ignore_set: Set[str] = None) -> Node:
+def generate_tree_of_nodes_from_directories_and_files(path: str, no_content: bool = False, no_limit: bool = False, size_limit: int = 1_000_000, mktree_ignore_set: Set[str] = None) -> Node:
     """
     Recursively walk a directory and return a Node tree.
     """
@@ -275,12 +260,12 @@ def build_tree_from_directory(path: str, no_content: bool = False, no_limit: boo
 
     try:
         for entry in sorted(os.listdir(path)):
-            if mktree_ignore_set and match_entry(entry, mktree_ignore_set):
+            if mktree_ignore_set and is_entry_in_ignore_set(entry, mktree_ignore_set):
                 log(f"[yellow]Ignoring:[/] {os.path.join(path, entry)} (in .mktreeignore)", v_level=2)
                 continue
             full_path = os.path.join(path, entry)
             if os.path.isdir(full_path):
-                node.children.append(build_tree_from_directory(full_path, no_content, no_limit, size_limit, mktree_ignore_set))
+                node.children.append(generate_tree_of_nodes_from_directories_and_files(full_path, no_content, no_limit, size_limit, mktree_ignore_set))
             else:
                 if no_content:
                     content = None
@@ -296,7 +281,7 @@ def build_tree_from_directory(path: str, no_content: bool = False, no_limit: boo
             log(f"[red]Warning:[/] Skipping {path} (permission denied)", v_level=1)
     return node
 
-def node_to_tree_lines(node: Node, indent: int = 0) -> List[str]:
+def generate_list_of_lines_from_tree_of_nodes(node: Node, indent: int = 0) -> List[str]:
     """
     Convert a Node tree into .tree file format lines.
     """
@@ -316,77 +301,115 @@ def node_to_tree_lines(node: Node, indent: int = 0) -> List[str]:
                 lines.append(f"{prefix}{node.name}")
 
     for child in node.children:
-        lines.extend(node_to_tree_lines(child, indent + (0 if node.name == "$ROOT" else 1)))
+        lines.extend(generate_list_of_lines_from_tree_of_nodes(child, indent + (0 if node.name == "$ROOT" else 1)))
 
     return lines
 
 def log(message: str, v_level: int = 1) -> None:
+    """ Log message based on verbosity level. """
+    global verbosity_level
     if v_level > verbosity_level: return
     console.print(message)
 
 
 if __name__ == "__main__":
     try:
+        # Get and process arguments
         args: Dict[str, str] = get_arguments()
+
+        # Set verbosity level
         if args.get("quiet", False):
             verbosity_level = 0
         if args.get("verbose", False):
             verbosity_level = 2
+
+        # Load configs
+        get_file_folder_sets() 
+
+        # Handle not implemented features
         if args.get("clean", False):
             raise NotImplementedError("--clean not implemented yet.")
+        if args.get("binary", False):
+            raise NotImplementedError("--binary not implemented yet.")
         if args.get("interactive", False):
             raise NotImplementedError("--interactive not implemented yet.")
         
-        if verbosity_level == 2 : rprint(args) # Debug print of arguments
+        # Debug print of arguments
+        if verbosity_level == 2 : rprint(args)
+
+        # Determine running mode
+        running_mode:str = "error_mode"  # default
+        if args.get("tree_file", None):
+            running_mode = "normal_mode_from_file"
+        if args.get("inline", None):
+            running_mode = "normal_mode_from_inline"
+        if args.get("template", None):
+            running_mode = "normal_mode_from_template"
         if args.get("reverse", False):
-            if not args['tree_file']:
-                raise ValueError("Please provide a directory path to reverse using the positional argument.")
-            dir_path = args['tree_file']
-            if not os.path.isdir(dir_path):
-                raise NotADirectoryError(f"'{dir_path}' is not a valid directory.")
-            if os.path.exists(os.path.join(dir_path, ".mktreeignore")):
-                with open(os.path.join(dir_path, ".mktreeignore"), "r", encoding="utf-8") as f:
-                    mktree_ignore_set = set(line.strip() for line in f if line.strip() and not line.startswith("#"))
-                log(f"[blue]Loaded .mktreeignore with {len(mktree_ignore_set)} entries.[/]", v_level=2)
-            else:
-                log(f"[yellow]No .mktreeignore found, skipping.[/]", v_level=2)
-                mktree_ignore_set = None
-            tree = build_tree_from_directory(dir_path, no_content=args.get("no_content", False), no_limit=args.get("no_limit", False), mktree_ignore_set=mktree_ignore_set)
-            tree_lines = node_to_tree_lines(tree)
-            output_str = "\n".join(tree_lines)
-            log(f"[bold green]Generated .tree structure from '{dir_path}':[/]\n", v_level=1)
-            log(output_str, v_level=1)
-            if not args.get("dry_run", False):
-                output_file = os.path.join(args.get("output", "."), f"{os.path.basename(dir_path)}.tree")
-                with open(output_file, "w", encoding="utf-8") as f:
-                    f.write(output_str)
-                log(f"\n[bold blue]Saved to:[/] {output_file}", v_level=1)
-            sys.exit(0)
-        if args['template']:
-            template_path: str = project_path + "/templates"
-            if not os.path.isdir(template_path):
-                raise NotADirectoryError(f"Templates directory '{template_path}' not found.")
-            template_file = os.path.join(template_path, f"{args['template'].lower()}.tree")
-            if not os.path.isfile(template_file):
-                raise FileNotFoundError(f"Template '{args['template']}' not found in templates directory.")
-            tree = parse_tree_file(template_file)
-        elif args['inline']:
-            tree = parse_tree_inline(args['inline'])
-        elif args['tree_file']:
-            tree = parse_tree_file(args['tree_file'])
-        else:
-            raise NotImplementedError("Either --inline or tree_file must be provided.")
-            # TODO: implement interactive mode
+            running_mode = "reverse_mode"
+        if args.get("interactive", False):
+            running_mode = "interactive_mode"
+            raise NotImplementedError("--interactive not implemented yet.")
         
-        # print_tree(tree)
-        rich_tree = build_rich_tree(tree)
-        console.print(rich_tree)
-        if not args.get("dry_run", False):
-            from rich.prompt import Confirm
-            correct_tree = Confirm.ask("Is this tree structure correct?")
-            if not correct_tree:
-                raise SystemExit("Aborted by user.")
-            create_tree(tree, base_path=args.get("output", "."), force=args.get("force", False))
+        # log running mode
+        log(f"[blue]Running in mode:[/] {running_mode}", v_level=2)
+
+        # Main logic based on mode
+        match running_mode:
+
+            case "error_mode":
+                raise NotImplementedError("fatal error: no valid mode detected.")
+            
+            case "reverse_mode":
+                if not args['tree_file']:
+                    raise ValueError("Please provide a directory path to reverse using the positional argument.")
+                dir_path = args['tree_file']
+                if not os.path.isdir(dir_path):
+                    raise NotADirectoryError(f"'{dir_path}' is not a valid directory.")
+                if os.path.exists(os.path.join(dir_path, ".mktreeignore")):
+                    with open(os.path.join(dir_path, ".mktreeignore"), "r", encoding="utf-8") as f:
+                        mktree_ignore_set = set(line.strip() for line in f if line.strip() and not line.startswith("#"))
+                    log(f"[blue]Loaded .mktreeignore with {len(mktree_ignore_set)} entries.[/]", v_level=2)
+                else:
+                    log(f"[yellow]No .mktreeignore found, skipping.[/]", v_level=2)
+                    mktree_ignore_set = None
+                tree = generate_tree_of_nodes_from_directories_and_files(dir_path, no_content=args.get("no_content", False), no_limit=args.get("no_limit", False), mktree_ignore_set=mktree_ignore_set)
+                tree_lines = generate_list_of_lines_from_tree_of_nodes(tree)
+                output_str = "\n".join(tree_lines)
+                log(f"[bold green]Generated .tree structure from '{dir_path}':[/]\n", v_level=1)
+                log(output_str, v_level=1)
+                correct_output = Confirm.ask("\nIs this generated .tree structure correct?")
+                if not correct_output:
+                    raise SystemExit("Aborted by user.")
+                if not args.get("dry_run", False):
+                    output_file = os.path.join(args.get("output", "."), f"{os.path.basename(dir_path)}.tree")
+                    with open(output_file, "w", encoding="utf-8") as f:
+                        f.write(output_str)
+                    log(f"\n[bold blue]Saved to:[/] {output_file}", v_level=1)
+
+            case "normal_mode_from_file" | "normal_mode_from_inline" | "normal_mode_from_template":
+                if args['template']:
+                    template_path: str = project_path + "/templates"
+                    if not os.path.isdir(template_path):
+                        raise NotADirectoryError(f"Templates directory '{template_path}' not found.")
+                    template_file = os.path.join(template_path, f"{args['template'].lower()}.tree")
+                    if not os.path.isfile(template_file):
+                        raise FileNotFoundError(f"Template '{args['template']}' not found in templates directory.")
+                    tree = generate_tree_of_nodes_from_tree_file(template_file)
+                elif args['inline']:
+                    tree = generate_tree_of_nodes_from_inline_tree(args['inline'])
+                elif args['tree_file']:
+                    tree = generate_tree_of_nodes_from_tree_file(args['tree_file'])
+                else:
+                    raise NotImplementedError("Either --inline or tree_file or template must be provided.")
+                # print_tree(tree)
+                rich_tree = generate_rich_tree_from_tree_of_nodes(tree)
+                console.print(rich_tree)
+                if not args.get("dry_run", False):
+                    correct_tree = Confirm.ask("Is this tree structure correct?")
+                    if not correct_tree:
+                        raise SystemExit("Aborted by user.")
+                    create_directories_and_files_from_tree_of_nodes(tree, base_path=args.get("output", "."), force=args.get("force", False))
     except NotImplementedError as e:
         log(f"[red]Error:[/] {e}", v_level=1)
         sys.exit(1)
