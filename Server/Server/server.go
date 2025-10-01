@@ -16,6 +16,7 @@ type Input struct {
 	Tree          string `json:"Tree"`
 	Prompt        string `json:"Prompt"`
 	OperationType string `json:"OperationType"`
+	QA            string `json:"QA,omitempty"`
 }
 
 // Output represents the response structure
@@ -62,7 +63,7 @@ func (s *Server) ProcessTreeHandler(w http.ResponseWriter, r *http.Request) {
 	// Optional: Create a context with req_id for deeper logging or tracing
 
 	// Call your AgentProcess function - now accepts req_id and context
-	result, changes, err := llms.AgentProcess(s.log, input.Tree, input.Prompt, input.OperationType, reqID)
+	result, changes, questions, err := llms.AgentProcess(s.log, input.Tree, input.Prompt, input.OperationType, input.QA, reqID)
 	if err != nil {
 		s.log.Printf("[REQ_ID: %s] Agent processing failed: %v", reqID, err)
 		http.Error(w, fmt.Sprintf("Agent processing failed: %v", err), http.StatusInternalServerError)
@@ -76,9 +77,10 @@ func (s *Server) ProcessTreeHandler(w http.ResponseWriter, r *http.Request) {
 	// Try to parse the result as JSON, if it fails, use it as a plain string
 	if err := json.Unmarshal([]byte(result), &processedTree); err != nil {
 		processedTree = result // Use as plain string
-		extraInfo = fmt.Sprintf("{changes: %s}", changes)
+		extraInfo = fmt.Sprintf("{changes: %s, questions: %s}", changes, questions)
 	} else {
-		extraInfo = fmt.Sprintf("{changes: %s}", changes)
+		extraInfo = fmt.Sprintf("{changes: %s, questions: %s}", changes, questions)
+
 	}
 
 	// Prepare output with req_id

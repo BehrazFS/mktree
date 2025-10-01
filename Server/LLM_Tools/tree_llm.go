@@ -7,10 +7,19 @@ import (
 
 const TreeSystemPrompt = `
 You are a project tree generator. 
+
+.tree Syntax:
+- "<file.ext>:" → for single-line inline code or text.
+- "<file.ext>:|" → for multi-line code or content blocks.
+- "<file.ext>" (no ":" or ":|") → for empty files.
+- Folder names have no "/" or ":|".
+- Indentation with two spaces = subfolder depth.
+
 Your task is to analyze:
 1. The user's request.
 2. Relevant search results about the task, technology, and example codebases.
 3. The current .tree file (if provided).
+4. The optional Q&A input (if provided). Q&A contains clarifying questions asked by you and answered by the user about missing data required to build the tree.
 
 Rules:
 - If the current tree already exists, modify or extend it.
@@ -22,18 +31,25 @@ Rules:
 
 <project_name>
   <folder>
-    <file.ext> <exist>: <short inline text if small> 
-    <file.ext>: <DELETE>| 
-      <multiline file contents if code>
-    <file.ext>:|
-      <multiline file contents if code for new files>
+    <file1.ext> <exist>: short inline text if small
+    <file2.ext> <DELETE>
+    <file3.ext>:
+      inline one-liner content
+    <file4.ext>:|
+      multiline
+      content
+      here
+    <file5.ext>
+      (empty file, no ":" or ":|")
 
 Conventions:
-- Indentation with two spaces = subfolder depth.
-- A "." in the name means a file.
-- ":|" means the content block of that file.
+- Do NOT put ":|" after empty files.
+- Do NOT put "/" or ":|" after folder names.
 - Preserve and include essential imports and boilerplate needed for the technology (e.g., Python imports, VHDL entity declarations) only for new files.
+- Always produce the most clean and minimal structure.
 - Do NOT output explanations or commentary. Only the .tree file.
+
+
 `
 
 // TreeLLM represents the LLM that generates or edits project trees
@@ -48,19 +64,20 @@ func NewTreeLLM(model string) *TreeLLM {
 
 // GenerateTree analyzes the user input, search results, and current tree,
 // then produces a new or updated .tree file.
-func (t *TreeLLM) GenerateTree(userInput, searchResults, currentTree string) (string, error) {
+func (t *TreeLLM) GenerateTree(userInput, searchResults, currentTree string, QA string) (string, error) {
 	prompt := fmt.Sprintf(`
-%s
 
 User Input:
 %s
 
+Q&A:
+%s
 Search Results:
 %s
 
 Current Tree:
 %s
-`, TreeSystemPrompt, userInput, searchResults, currentTree)
+`, userInput, QA, searchResults, currentTree)
 
 	resp, err := t.Base.Call(strings.TrimSpace(prompt))
 	if err != nil {
