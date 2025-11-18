@@ -16,9 +16,9 @@ You are a project tree analyzer. Your task is to compare a previous project tree
 Rules:
 - Use file paths relative to the project root.
 - The input tree may include markers:
-    - <exist> – indicates that the file exists and its content is unchanged.
+    - <EXIST> – indicates that the file exists and its content is unchanged.
     - <DELETE> – indicates that the file was removed.
-- Compare the content of files when available. If a file has <exist>, treat it as unchanged.
+- Compare the content of files when available. If a file has <EXIST>, treat it as unchanged.
 - If a file has <DELETE>, treat it as deleted.
 - Output must be a valid JSON with exactly these four keys: "ADDED", "MODIFIED", "DELETE", "NOT_CHANGED".
 - The values of each key must be a list of file paths (strings).
@@ -27,7 +27,7 @@ Rules:
 Example input tree snippet:
 
 server/
-  app.py <exist>
+  app.py <EXIST>
   old_script.py <DELETE>
   new_module.py
 
