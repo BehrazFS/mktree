@@ -50,8 +50,8 @@ func WebSearch(q string) ([]SearchResult, error) {
 		}
 
 		results = append(results, SearchResult{
-			Title:   title,
-			URL:     rawURL,
+			Title: title,
+			URL:   rawURL,
 		})
 	})
 
@@ -81,7 +81,6 @@ func cleanText(rawText string) string {
 	// Join lines with proper spacing
 	return strings.Join(cleanedLines, "\n\n")
 }
-
 
 // ---------------- MAIN CONTENT SCRAPER ----------------
 func ExtractMainContent(pageURL string) (string, error) {
@@ -113,22 +112,34 @@ func RunSearch(query string) ([]SearchResult, error) {
 
 		go func(i int) {
 			defer wg.Done()
-			sem <- struct{}{} // Acquire slot
+			sem <- struct{}{}        // Acquire slot
 			defer func() { <-sem }() // Release slot
+
 			content, err := ExtractMainContent(results[i].URL)
 			mu.Lock()
-			if err != nil {
-				// Remove result at index i safely
-				results = append(results[:i], results[i+1:]...)
-			} else {
+			if err == nil {
 				results[i].Content = content
+			} else {
+				// Mark for removal by setting Content to empty string
+				results[i].Content = ""
 			}
 			mu.Unlock()
-
 		}(i)
 	}
 
 	wg.Wait()
 
-	return results[:3] , nil
+	// Filter out results with empty content
+	filtered := make([]SearchResult, 0, len(results))
+	for _, r := range results {
+		if r.Content != "" {
+			filtered = append(filtered, r)
+		}
+	}
+
+	if len(filtered) > 3 {
+		return filtered[:3], nil
+	}
+	return filtered, nil
 }
+
