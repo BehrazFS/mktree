@@ -5,7 +5,7 @@ import (
 	"log"
 )
 
-func AgentProcess(log *log.Logger, user_query string, curr_tree string, op_type string, req_id string) (string, string, error) {
+func AgentProcess(log *log.Logger, curr_tree string, user_query string, op_type string, req_id string) (string, string, error) {
 
 	log.Printf("[req_id=%s] The Tree generation is started", req_id)
 

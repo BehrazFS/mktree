@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"path/filepath"
+	"strings"
 )
 
 // ChangeReport defines the structured output for the file changes.
@@ -31,17 +32,21 @@ func (ht *HashTracker) TrackChanges(previousTree, newTree string) (string, error
 
 	prevMap := map[string]string{}
 	newMap := map[string]string{}
+	deletedSet := make(map[string]struct{})
 
-	buildPathHashMap(prevRoot, "", prevMap)
-	buildPathHashMap(newRoot, "", newMap)
+	buildPathHashMap(prevRoot, "", prevMap, deletedSet)
+	buildPathHashMap(newRoot, "", newMap, deletedSet)
 
 	addedSet := make(map[string]struct{})
 	modifiedSet := make(map[string]struct{})
-	deletedSet := make(map[string]struct{})
 	notChangedSet := make(map[string]struct{})
 
 	// Compare new vs previous
 	for path, newHash := range newMap {
+		if _, isDeleted := deletedSet[path]; isDeleted {
+			continue // skip <DELETE> files
+		}
+
 		prevHash, exists := prevMap[path]
 		if !exists {
 			addedSet[path] = struct{}{}
@@ -54,7 +59,7 @@ func (ht *HashTracker) TrackChanges(previousTree, newTree string) (string, error
 
 	// Detect deleted files
 	for path := range prevMap {
-		if _, exists := newMap[path]; !exists {
+		if _, exists := newMap[path]; !exists || strings.Contains(path, "<DELETE>") {
 			deletedSet[path] = struct{}{}
 		}
 	}
@@ -75,21 +80,28 @@ func (ht *HashTracker) TrackChanges(previousTree, newTree string) (string, error
 }
 
 // buildPathHashMap recursively builds a {path: sha256(content)} map from a Node tree.
-func buildPathHashMap(node *Node, parentPath string, m map[string]string) {
+// Files containing "<DELETE>" are only added to deletedSet and not to the normal map.
+func buildPathHashMap(node *Node, parentPath string, m map[string]string, deletedSet map[string]struct{}) {
 	if node.Name == "$ROOT" {
 		for _, child := range node.Children {
-			buildPathHashMap(child, "", m)
+			buildPathHashMap(child, "", m, deletedSet)
 		}
 		return
 	}
 
 	currentPath := filepath.Join(parentPath, node.Name)
 
+	// If filename contains "<DELETE>", mark as deleted and skip
+	if node.Type == "file" && strings.Contains(node.Name, "<DELETE>") {
+		deletedSet[currentPath] = struct{}{}
+		return
+	}
+
 	if node.Type == "file" {
 		m[currentPath] = sha256Hash(node.Content)
 	} else if node.Type == "dir" {
 		for _, child := range node.Children {
-			buildPathHashMap(child, currentPath, m)
+			buildPathHashMap(child, currentPath, m, deletedSet)
 		}
 	}
 }
