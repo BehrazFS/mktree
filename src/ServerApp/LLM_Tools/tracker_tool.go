@@ -1,13 +1,14 @@
 package llms
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"strings"
+	"path/filepath"
 )
 
 // ChangeReport defines the structured output for the file changes.
-// Using a struct ensures the JSON output is always valid and correctly formatted.
 type ChangeReport struct {
 	Added      []string `json:"ADDED"`
 	Modified   []string `json:"MODIFIED"`
@@ -15,52 +16,49 @@ type ChangeReport struct {
 	NotChanged []string `json:"NOT_CHANGED"`
 }
 
-// HashTracker is the main struct for our algorithmic tracker.
-// It doesn't need any internal state like the LLM version.
+// HashTracker compares two .tree files and reports changes.
 type HashTracker struct{}
 
-// NewHashTracker creates a new instance of the HashTracker.
+// NewHashTracker creates a new instance of HashTracker.
 func NewHashTracker() *HashTracker {
 	return &HashTracker{}
 }
 
-// TrackChanges is the main function that compares two project trees.
-// It takes string representations of the trees, where each line is "path <hash>".
+// TrackChanges compares two .tree files and returns a JSON report of changes.
 func (ht *HashTracker) TrackChanges(previousTree, newTree string) (string, error) {
-	// 1. Parse the input strings into maps of {path: hash}
-	prevMap := parseTreeToMap(previousTree)
-	newMap := parseTreeToMap(newTree)
+	prevRoot := GenerateTreeOfNodesFromString(previousTree)
+	newRoot := GenerateTreeOfNodesFromString(newTree)
 
-	// 2. Initialize sets to store the results. Using map[string]struct{} is efficient for sets.
+	prevMap := map[string]string{}
+	newMap := map[string]string{}
+
+	buildPathHashMap(prevRoot, "", prevMap)
+	buildPathHashMap(newRoot, "", newMap)
+
 	addedSet := make(map[string]struct{})
 	modifiedSet := make(map[string]struct{})
 	deletedSet := make(map[string]struct{})
 	notChangedSet := make(map[string]struct{})
 
-	// 3. Find ADDED and MODIFIED/NOT_CHANGED files by iterating the new map
+	// Compare new vs previous
 	for path, newHash := range newMap {
 		prevHash, exists := prevMap[path]
 		if !exists {
-			// File is new
 			addedSet[path] = struct{}{}
 		} else if newHash != prevHash {
-			// File existed but hash is different
 			modifiedSet[path] = struct{}{}
 		} else {
-			// File existed and hash is the same
 			notChangedSet[path] = struct{}{}
 		}
 	}
 
-	// 4. Find DELETED files by iterating the previous map
+	// Detect deleted files
 	for path := range prevMap {
 		if _, exists := newMap[path]; !exists {
-			// File was in the previous tree but is missing from the new one
 			deletedSet[path] = struct{}{}
 		}
 	}
 
-	// 5. Assemble the final report
 	report := ChangeReport{
 		Added:      mapKeysToSlice(addedSet),
 		Modified:   mapKeysToSlice(modifiedSet),
@@ -68,7 +66,6 @@ func (ht *HashTracker) TrackChanges(previousTree, newTree string) (string, error
 		NotChanged: mapKeysToSlice(notChangedSet),
 	}
 
-	// 6. Marshal the report into a JSON string
 	jsonData, err := json.MarshalIndent(report, "", "  ")
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal report to JSON: %w", err)
@@ -77,32 +74,38 @@ func (ht *HashTracker) TrackChanges(previousTree, newTree string) (string, error
 	return string(jsonData), nil
 }
 
-// parseTreeToMap converts the flat "path <hash>" string into a map.
-func parseTreeToMap(treeString string) map[string]string {
-	fileMap := make(map[string]string)
-	if treeString == "" {
-		return fileMap
+// buildPathHashMap recursively builds a {path: sha256(content)} map from a Node tree.
+func buildPathHashMap(node *Node, parentPath string, m map[string]string) {
+	if node.Name == "$ROOT" {
+		for _, child := range node.Children {
+			buildPathHashMap(child, "", m)
+		}
+		return
 	}
 
-	lines := strings.Split(strings.TrimSpace(treeString), "\n")
-	for _, line := range lines {
-		parts := strings.SplitN(line, " ", 2)
-		if len(parts) == 2 {
-			path := strings.TrimSpace(parts[0])
-			hash := strings.TrimSpace(parts[1])
-			if path != "" {
-				fileMap[path] = hash
-			}
+	currentPath := filepath.Join(parentPath, node.Name)
+
+	if node.Type == "file" {
+		m[currentPath] = sha256Hash(node.Content)
+	} else if node.Type == "dir" {
+		for _, child := range node.Children {
+			buildPathHashMap(child, currentPath, m)
 		}
 	}
-	return fileMap
 }
 
-// mapKeysToSlice is a helper to convert the keys of a set map into a string slice.
+// sha256Hash generates a SHA256 hash for a string
+func sha256Hash(text string) string {
+	h := sha256.New()
+	h.Write([]byte(text))
+	return hex.EncodeToString(h.Sum(nil))
+}
+
+// mapKeysToSlice converts a map[string]struct{} to a slice of keys
 func mapKeysToSlice(m map[string]struct{}) []string {
-	slice := make([]string, 0, len(m))
-	for key := range m {
-		slice = append(slice, key)
+	s := make([]string, 0, len(m))
+	for k := range m {
+		s = append(s, k)
 	}
-	return slice
+	return s
 }

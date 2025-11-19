@@ -111,6 +111,9 @@ def read_multiline_content(lines: List[str], start_index: int, base_indent: int)
     i: int = start_index
     while i < len(lines):
         line: str = lines[i]
+        if line.strip() == "":
+            i += 1
+            continue
         # stop if dedented
         if count_leading_spaces(line) // 2 <= base_indent:
             break
