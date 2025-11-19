@@ -36,7 +36,8 @@ func AgentProcess(log *log.Logger, user_query string, curr_tree string, op_type 
 
 	log.Printf("[req_id=%s] The Tree has been generated", req_id)
 
-	tracker := NewTrackerLLM("qwen-3-235b-a22b-instruct-2507")
+	tracker := NewHashTracker()
+	log.Printf("[req_id=%s] Comparing project trees...", req_id)
 	changes, err := tracker.TrackChanges(curr_tree, tree)
 	if err != nil {
 		log.Printf("[req_id=%s] Error: %v", req_id, err)
@@ -44,7 +45,6 @@ func AgentProcess(log *log.Logger, user_query string, curr_tree string, op_type 
 	}
 
 	log.Printf("[req_id=%s] The changes have been tracked", req_id)
-
 
 	return tree, changes, nil
 }

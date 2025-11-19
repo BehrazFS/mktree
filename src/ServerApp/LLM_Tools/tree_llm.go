@@ -25,12 +25,12 @@ Rules:
 - If no tree is given, create a new one.
 - Only add imports for new files, do not change imports and code in existing files.
 - Always follow proper programming paradigms.
-- Tag existing files with <EXIST> and files to remove with <DELETE>.
+- Tag files to remove with <DELETE>.
 - Always output a single .tree file in the following format:
 
 <project_name>
   <folder>
-    <file1.ext> <EXIST>: short inline text if small
+    <file1.ext>: short inline text if small
     <file2.ext> <DELETE>
     <file3.ext>:
       inline one-liner content
