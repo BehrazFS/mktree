@@ -1,0 +1,454 @@
+#:import SlideTransition kivy.uix.screenmanager.SlideTransition
+#:import NoTransition kivy.uix.screenmanager.NoTransition
+
+<CommonNavigationRailItem>
+    MDNavigationRailItemIcon:
+        icon: root.icon
+    MDNavigationRailItemLabel:
+        text: root.text
+
+
+
+BoxLayout:
+    orientation: "horizontal"
+    screen_manager:screen_manager
+    MDNavigationRail:
+        type: "labeled"
+
+        # --- HOME ---
+        MDNavigationRailFabButton:
+            icon: "home"
+            on_release: screen_manager.current = "home"
+
+        # --- TREE EDITOR ---
+        CommonNavigationRailItem:
+            icon: "file-tree"
+            text: "Editor"
+            group: "nav"
+            on_active: screen_manager.current = "editor"
+
+        # --- LLM GENERATOR ---
+        CommonNavigationRailItem:
+            icon: "robot-outline"
+            text: "Agent"
+            group: "nav"
+            on_active: screen_manager.current = "llm"
+
+        # --- REVERSE TREE ---
+        CommonNavigationRailItem:
+            icon: "swap-horizontal-bold"
+            text: "Reverse"
+            group: "nav"
+            on_active: screen_manager.current = "reverse"
+
+        # --- TEMPLATES ---
+        CommonNavigationRailItem:
+            icon: "view-list-outline"
+            text: "Templates"
+            group: "nav"
+            on_active: screen_manager.current = "templates"
+
+        # --- SETTINGS ---
+        CommonNavigationRailItem:
+            icon: "cog-outline"
+            text: "Settings"
+            group: "nav"
+            on_active: screen_manager.current = "settings"
+
+    # ---- YOUR REAL SCREENS ----
+    MyScreenManager:
+        id: screen_manager
+        transition: NoTransition()
+
+        HomeScreen:
+            name: "home"
+
+        TreeEditorScreen:
+            name: "editor"
+
+        LLMGeneratorScreen:
+            name: "llm"
+
+        ReverseScreen:
+            name: "reverse"
+
+        TemplatesScreen:
+            name: "templates"
+
+        SettingsScreen:
+            name: "settings"
+<HomeScreen>:
+    MDBoxLayout:
+        orientation: 'vertical'
+        padding: dp(16)
+        spacing: dp(12)
+        MDLabel:
+            text: 'Welcome to mktree GUI'
+            size_hint_y: None
+            font_style: "Display"
+            halign: "center"
+            valign: "center"
+            size_hint: (1, 1)
+        MDGridLayout:
+            cols: 2
+            adaptive_height: True
+            spacing: dp(8)
+            MDButton:
+                on_release: app.file_manager_open()
+                style: "filled"
+                theme_width: "Custom"
+                height: "50dp"
+                size_hint_x: .5
+                MDButtonIcon:
+                    x: text.x - (self.width + dp(10))
+                    icon: "folder-open-outline"
+                MDButtonText:
+                    id:text
+                    pos_hint: {"center_x": .5, "center_y": .5}
+                    text: "Open .tree file"
+                    
+            MDButton:
+                style: "filled"
+                theme_width: "Custom"
+                height: "50dp"
+                size_hint_x: .5
+                on_release:
+                    app.root.screen_manager.current = 'editor'
+                    app.root.screen_manager.get_screen('editor').editor.text = ''
+                MDButtonIcon:
+                    x: text.x - (self.width + dp(10))
+                    icon: "plus-box-outline"
+                MDButtonText:
+                    id:text
+                    pos_hint: {"center_x": .5, "center_y": .5}
+                    text: "Create New .tree"
+            MDButton:
+                style: "filled"
+                on_release: app.root.screen_manager.current = 'templates'
+                theme_width: "Custom"
+                height: "50dp"
+                size_hint_x: .5
+                MDButtonIcon:
+                    x: text.x - (self.width + dp(10))
+                    icon: "file-document-outline"
+                MDButtonText:
+                    id:text
+                    pos_hint: {"center_x": .5, "center_y": .5}
+                    text: 'Use Template'
+            MDButton:
+                theme_width: "Custom"
+                height: "50dp"
+                size_hint_x: .5
+                style: "filled"
+                on_release: app.root.screen_manager.current = 'reverse'
+                MDButtonIcon:
+                    x: text.x - (self.width + dp(10))
+                    icon: "swap-horizontal-bold"
+                MDButtonText:
+                    id:text
+                    pos_hint: {"center_x": .5, "center_y": .5}
+                    text: 'Reverse from Directory'
+<CodeEditor@TextInput>:
+    id: editor
+    text: ''
+    font_name: 'DroidSansMono'
+    font_size: app.settings.data.get('editor_font_size', 14)
+    multiline: True
+    size_hint_y: 1
+    padding: [dp(10), dp(10)]        # left/right, top/bottom
+    foreground_color: 1, 1, 1, 1
+    background_color: .06, .06, .06, 1
+    cursor_color: 1, 1, 1, 1
+    scroll_y: 1                 
+
+<TreeEditorScreen>:
+    editor: editor
+    preview: preview
+    MDBoxLayout:
+        orientation: 'vertical'
+        padding: dp(12)
+        spacing: dp(8)
+        MDBoxLayout:
+            adaptive_height: True
+            spacing: dp(8)
+            MDButton:
+                style: "filled"
+                theme_width: "Custom"
+                height: "50dp"
+                size_hint_x: 0.5
+                on_release: app.file_manager_open()
+                MDButtonIcon:
+                    icon: "folder-open-outline"
+                MDButtonText:
+                    text: "Open"
+
+            MDButton:
+                style: "filled"
+                theme_width: "Custom"
+                height: "50dp"
+                size_hint_x: 0.5
+                on_release: root.show_alert_dialog()
+                MDButtonIcon:
+                    icon: "content-save-check-outline"
+                MDButtonText:
+                    text: "Save"
+
+            MDButton:
+                style: "filled"
+                theme_width: "Custom"
+                height: "50dp"
+                size_hint_x: 0.5
+                on_release: root.preview_tree()
+                MDButtonIcon:
+                    icon: "eye-outline"
+                MDButtonText:
+                    text: "Preview Tree"
+            MDButton:
+                style: "filled"
+                theme_width: "Custom"
+                height: "50dp"
+                size_hint_x: 0.5
+                on_release: print("todo")
+                MDButtonIcon:
+                    icon: "play-outline"
+                MDButtonText:
+                    text: "Execute"
+        MDBoxLayout:
+            orientation: 'horizontal'
+            CodeEditor:
+                id: editor
+                font_size: app.settings.data.get('editor_font_size', 14)
+
+
+            ScrollView:
+                size_hint_x: .45
+                MDLabel:
+                    id: preview
+                    text: ''
+                    markup: True
+                    size_hint_y: None
+                    text_size: self.width, None
+                    height: self.texture_size[1]
+
+
+<LLMGeneratorScreen>:
+    prompt_input: prompt_input
+    input_tree: input_tree
+    output_tree: output_tree
+    logs_text: logs_text
+    send_btn: send_btn
+
+    MDBoxLayout:
+        orientation: 'horizontal'
+        MDBoxLayout:
+            orientation: 'vertical'
+            padding: dp(12)
+            spacing: dp(8)
+            MDBoxLayout:
+                adaptive_height: True
+                spacing: dp(8)
+                MDButton:
+                    text: 'Load .tree to Input'
+                    on_release: app.open_file_dialog(on_select=app.load_tree_into_editor)
+                MDButton:
+                    text: 'Apply Result to Editor'
+                    on_release: app.root.get_screen('editor').editor.text = output_tree.text
+                MDButton:
+                    id: send_btn
+                    text: 'Send to LLM'
+                    on_release: root.send_to_llm()
+                MDButton:
+                    text: 'Save Output'
+                    on_release: app.save_file_dialog(default_text='result.tree', on_save=lambda p: open(p, 'w', encoding='utf-8').write(output_tree.text))
+            MDBoxLayout:
+                orientation: 'horizontal'
+                MDTextField:
+                    id: prompt_input
+                    text: ''
+                    hint_text: 'Enter prompt here...'
+                    multiline: True
+                MDBoxLayout:
+                    orientation: 'vertical'
+                    size_hint_x: .5
+                    MDLabel:
+                        text: 'Input Tree (optional)'
+                        size_hint_y: None
+                        height: dp(24)
+                    MDTextField:
+                        id: input_tree
+                        text: ''
+                        multiline: True
+                    MDLabel:
+                        text: 'Output Tree'
+                        size_hint_y: None
+                        height: dp(24)
+                    MDTextField:
+                        id: output_tree
+                        text: ''
+                        multiline: True
+            MDLabel:
+                text: 'Logs'
+                size_hint_y: None
+                height: dp(24)
+            MDTextField:
+                id: logs_text
+                text: ''
+                multiline: True
+                readonly: True
+
+
+<ReverseScreen>:
+    chooser: chooser
+    generated: generated
+    MDBoxLayout:
+        orientation: 'horizontal'
+        MDBoxLayout:
+            orientation: 'vertical'
+            padding: dp(12)
+            spacing: dp(8)
+            FileChooserIconView:
+                id: chooser
+                size_hint_y: .7
+            MDBoxLayout:
+                adaptive_height: True
+                spacing: dp(8)
+                MDButton:
+                    text: 'Generate .tree from Directory'
+                    on_release: root.pick_dir_and_reverse()
+                MDButton:
+                    text: 'Save Generated'
+                    on_release: app.save_file_dialog(default_text='reversed.tree', on_save=lambda p: open(p, 'w', encoding='utf-8').write(generated.text))
+            ScrollView:
+                MDLabel:
+                    id: generated
+                    text: ''
+                    size_hint_y: None
+                    height: self.texture_size[1]
+
+<TemplateItem@MDButton>:
+    style:"filled"
+    size_hint_x: 1
+    height: "50dp"
+    spacing: dp(8)
+    theme_width: "Custom"
+    MDButtonIcon:
+        icon: "file-document-outline"
+
+    MDButtonText:
+        text: root.text
+        valign: "middle"
+
+    
+<TemplatesScreen>:
+    templates_list:templates_list
+    template_preview:template_preview
+    MDBoxLayout:
+        orientation:"vertical"
+        MDBoxLayout:
+            orientation: 'horizontal'
+            spacing: dp(8)
+
+            RecycleView:
+                id: templates_list
+                viewclass: 'TemplateItem'
+                RecycleBoxLayout:
+                    orientation: 'vertical'
+                    default_size: None, dp(50)
+                    default_size_hint: 1, None
+                    size_hint_y: None
+                    height: self.minimum_height
+                    spacing: dp(4)
+
+
+            ScrollView:
+                MDLabel:
+                    id: template_preview
+                    text: ''
+                    size_hint_y: None
+                    height: self.texture_size[1]
+                    text_size: self.width, None
+        MDBoxLayout:
+            size_hint_y:0.2
+            orientation: 'horizontal'
+            padding: dp(12)
+            spacing: dp(8)
+            MDButton:
+                style: "filled"
+                theme_width: "Custom"
+                height: "50dp"
+                on_release: root.load_templates()
+                size_hint_x:0.5
+                MDButtonIcon:
+                    icon: "reload"          # icon for reload
+                MDButtonText:
+                    text: "Reload Templates"
+            MDButton:
+                style: "filled"
+                theme_width: "Custom"
+                height: "50dp"
+                size_hint_x:0.5
+                on_release: 
+                    app.root.screen_manager.get_screen('editor').editor.text = template_preview.text
+                    app.root.screen_manager.current = "editor"
+                MDButtonIcon:
+                    icon: "file-document-edit-outline"  # icon for loading into editor
+                MDButtonText:
+                    text: "Load into Editor"
+                    
+        
+
+
+<SettingsScreen>:
+    MDBoxLayout:
+        orientation: "vertical"
+        padding: dp(12)
+        spacing: dp(8)
+
+        MDBoxLayout:
+            adaptive_height: True
+            MDLabel:
+                text: "LLM Endpoint URL:"
+                size_hint_x: 0.3
+            MDTextField:
+                text: root.url_input_text
+                on_text: root.url_input_text = self.text
+
+        MDBoxLayout:
+            adaptive_height: True
+            MDLabel:
+                text: "Colored Preview:"
+                size_hint_x: 0.3
+            MDButton:
+               
+                style: "filled"
+                theme_width: "Custom"
+                size_hint_x: 1
+                height: "50dp"
+                on_release: root.toggle_preview()
+                MDButtonIcon:
+                    icon: "palette-outline"
+                MDButtonText:
+                    id :toggle_preview_widget
+                    text: 'On' if root.preview_colored else 'Off'
+
+        MDBoxLayout:
+            adaptive_height: True
+            MDLabel:
+                text: "Editor font size:"
+                size_hint_x: 0.3
+            MDTextField:
+                on_text: root.editor_font_size = int(self.text) if self.text.isdigit() else root.editor_font_size
+                text: str(root.editor_font_size)
+                id:editor_font_size_widget
+
+        MDButton:
+            style: "filled"
+            theme_width: "Custom"
+            height: "50dp"
+            size_hint_x: 1
+            on_release: root.save_settings()
+            MDButtonIcon:
+                icon: "content-save-outline"
+            MDButtonText:
+                text: "Save Settings"
+

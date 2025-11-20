@@ -1,0 +1,360 @@
+online_shop_microservice
+  README.md:|
+    # Online Shop Microservicen
+    A FastAPI-based microservice for managing an online shop's inventory, including goods, shops, and stock levels.
+    ## Description
+    This microservice provides RESTful APIs to manage:
+    - **Goods**: Products in the catalog with name, description, and price
+    - **Shops**: Physical or online store locations
+    - **Stock**: Inventory levels linking goods to specific shops
+    
+    Built with FastAPI, SQLAlchemy, and Pydantic for high performance and type safety.
+    
+    ## Features
+    
+    - ✅ FastAPI with automatic OpenAPI documentation
+    - ✅ SQLAlchemy ORM with SQLite database
+    - ✅ Pydantic models for data validation
+    - ✅ RESTful API design
+    - ✅ Automatic database table creation
+    - 🔄 CRUD operations (Create currently implemented)
+    - 🔄 API endpoint validation
+    - 🔄 Authentication & Authorization
+    - 🔄 Unit & Integration tests
+    - 🔄 Advanced error handling
+    
+    ## Installation
+
+    ### Prerequisites
+
+    - Python 3.8+
+    - pip or poetry
+
+    ### Setup
+
+    1. Clone the repository:
+    ```bash
+    git clone <repository-url>
+    cd online_shop_microservice
+    ```
+
+    2. Install dependencies:
+    ```bash
+    pip install -r requirements.txt
+    ```
+
+    3. Run the application:
+    ```bash
+    uvicorn app.main:app --reload
+    ```
+
+    The service will be available at `http://localhost:8000`
+
+    ## Usage
+
+    ### API Documentation
+
+    - **Swagger UI**: `http://localhost:8000/docs`
+    - **ReDoc**: `http://localhost:8000/redoc`
+
+    ### Example API Calls
+
+    #### Create a Good
+    ```bash
+    curl -X POST "http://localhost:8000/goods" \
+         -H "Content-Type: application/json" \
+         -d '{
+           "name": "Laptop",
+           "description": "High-performance laptop",
+           "price": 999
+         }'
+    ```
+
+    #### Create a Shop
+    ```bash
+    curl -X POST "http://localhost:8000/shops" \
+         -H "Content-Type: application/json" \
+         -d '{
+           "name": "Main Store",
+           "location": "123 Main St, City"
+         }'
+    ```
+
+    #### Create Stock Entry
+    ```bash
+    curl -X POST "http://localhost:8000/stock" \
+         -H "Content-Type: application/json" \
+         -d '{
+           "shop_id": 1,
+           "good_id": 1,
+           "quantity": 50
+         }'
+    ```
+
+    ## API Endpoints
+
+    ### Goods
+    - `POST /goods` - Create a new good
+
+    ### Shops
+    - `POST /shops` - Create a new shop
+
+    ### Stock
+    - `POST /stock` - Create a stock entry
+
+    ## Database Schema
+
+    The service uses SQLite with the following tables:
+
+    - **goods**: id, name, description, price
+    - **shops**: id, name, location
+    - **stock**: id, shop_id, good_id, quantity
+
+    ## Testing
+
+    ```bash
+    # Run tests (when implemented)
+    pytest
+    ```
+
+    ## Contributing
+
+    1. Fork the repository
+    2. Create a feature branch
+    3. Make your changes
+    4. Add tests for new functionality
+    5. Submit a pull request
+
+    ## License
+
+    MIT License
+
+    ## Project Status
+
+    🚧 **In Development** - Basic CRUD operations implemented. Additional features in progress.
+  TODO.md:|
+    # TODO List
+
+    ## High Priority
+
+    ### API Endpoints
+    - [ ] Implement GET endpoints for all resources
+      - [ ] GET /goods - List all goods
+      - [ ] GET /goods/{id} - Get specific good
+      - [ ] GET /shops - List all shops
+      - [ ] GET /shops/{id} - Get specific shop
+      - [ ] GET /stock - List all stock entries
+      - [ ] GET /stock/{id} - Get specific stock entry
+    - [ ] Implement PUT endpoints for updating resources
+      - [ ] PUT /goods/{id}
+      - [ ] PUT /shops/{id}
+      - [ ] PUT /stock/{id}
+    - [ ] Implement DELETE endpoints
+      - [ ] DELETE /goods/{id}
+      - [ ] DELETE /shops/{id}
+      - [ ] DELETE /stock/{id}
+
+    ### Validation & Error Handling
+    - [ ] Add input validation for all endpoints
+    - [ ] Implement proper HTTP status codes
+    - [ ] Add custom exception handlers
+    - [ ] Validate foreign key constraints
+    - [ ] Add field validation (e.g., price > 0, quantity >= 0)
+
+    ### Authentication & Security
+    - [ ] Implement JWT authentication
+    - [ ] Add role-based access control
+    - [ ] Secure endpoints with authentication
+    - [ ] Add API rate limiting
+    - [ ] Implement CORS configuration
+
+    ## Medium Priority
+
+    ### Database Improvements
+    - [ ] Add database migrations (Alembic)
+    - [ ] Implement database connection pooling
+    - [ ] Add database indexes for performance
+    - [ ] Support for PostgreSQL/MySQL
+    - [ ] Add database backup strategy
+
+    ### Testing
+    - [ ] Write unit tests for all models
+    - [ ] Write unit tests for all schemas
+    - [ ] Write integration tests for API endpoints
+    - [ ] Add test fixtures and factories
+    - [ ] Set up test database
+    - [ ] Add test coverage reporting
+
+    ### Documentation
+    - [ ] Add detailed API documentation with examples
+    - [ ] Document database schema
+    - [ ] Add deployment guide
+    - [ ] Create developer setup guide
+    - [ ] Add API versioning documentation
+
+    ## Low Priority
+
+    ### Features
+    - [ ] Add search functionality for goods
+    - [ ] Implement pagination for list endpoints
+    - [ ] Add filtering capabilities
+    - [ ] Implement caching (Redis)
+    - [ ] Add logging configuration
+    - [ ] Implement health check endpoint
+    - [ ] Add metrics/monitoring endpoints
+
+    ### Performance & Scalability
+    - [ ] Add async database operations
+    - [ ] Implement background tasks
+    - [ ] Add request/response compression
+    - [ ] Optimize database queries
+    - [ ] Add horizontal scaling support
+
+    ### DevOps & Deployment
+    - [ ] Create Docker configuration
+    - [ ] Add docker-compose for development
+    - [ ] Set up CI/CD pipeline
+    - [ ] Add environment configuration
+    - [ ] Create production deployment guide
+    - [ ] Add monitoring and alerting
+
+    ### Code Quality
+    - [ ] Add code formatting (black, isort)
+    - [ ] Set up linting (flake8, pylint)
+    - [ ] Add pre-commit hooks
+    - [ ] Improve type hints coverage
+    - [ ] Add docstrings to all functions
+
+    ## Future Enhancements
+
+    - [ ] GraphQL API support
+    - [ ] WebSocket support for real-time updates
+    - [ ] Event-driven architecture with message queue
+    - [ ] Microservice communication patterns
+    - [ ] Distributed tracing
+    - [ ] Circuit breaker pattern
+    - [ ] API gateway integration
+  requirements.txt <exist>:|
+    fastapi
+    uvicorn[standard]
+    sqlalchemy
+    pydantic
+  app
+    __init__.py
+    main.py <exist>:|
+      from fastapi import FastAPI
+      from .database import engine
+      from . import models
+      models.Base.metadata.create_all(bind=engine)
+      app = FastAPI()
+    database.py <exist>:|
+      from sqlalchemy import create_engine
+      from sqlalchemy.ext.declarative import declarative_base
+      from sqlalchemy.orm import sessionmaker
+      SQLALCHEMY_DATABASE_URL = "sqlite:///./shop.db"
+      engine = create_engine(SQLALCHEMY_DATABASE_URL)
+      SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+      Base = declarative_base()
+      def get_db():
+          db = SessionLocal()
+          try:
+              yield db
+          finally:
+              db.close()
+    models.py <exist>:|
+      from sqlalchemy import Column, Integer, String, ForeignKey
+      from sqlalchemy.orm import relationship
+      from .database import Base
+      class Goods(Base):
+          __tablename__ = "goods"
+          id = Column(Integer, primary_key=True, index=True)
+          name = Column(String, index=True)
+          description = Column(String)
+          price = Column(Integer)
+          stock = relationship("Stock", back_populates="good")
+      class Shop(Base):
+          __tablename__ = "shops"
+          id = Column(Integer, primary_key=True, index=True)
+          name = Column(String, index=True)
+          location = Column(String)
+          stock = relationship("Stock", back_populates="shop")
+      class Stock(Base):
+          __tablename__ = "stock"
+          id = Column(Integer, primary_key=True, index=True)
+          shop_id = Column(Integer, ForeignKey("shops.id"))
+          good_id = Column(Integer, ForeignKey("goods.id"))
+          quantity = Column(Integer)
+          shop = relationship("Shop", back_populates="stock")
+          good = relationship("Goods", back_populates="stock")
+    schemas.py <exist>:|
+      from pydantic import BaseModel
+      class GoodsBase(BaseModel):
+          name: str
+          description: str
+          price: int
+      class GoodsCreate(GoodsBase):
+          pass
+      class Goods(GoodsBase):
+          id: int
+          class Config:
+              orm_mode = True
+      class ShopBase(BaseModel):
+          name: str
+          location: str
+      class ShopCreate(ShopBase):
+          pass
+      class Shop(ShopBase):
+          id: int
+          class Config:
+              orm_mode = True
+      class StockBase(BaseModel):
+          shop_id: int
+          good_id: int
+          quantity: int
+      class StockCreate(StockBase):
+          pass
+      class Stock(StockBase):
+          id: int
+          class Config:
+              orm_mode = True
+    routes
+      __init__.py
+      goods.py <exist>:|
+        from fastapi import APIRouter, Depends, HTTPException
+        from sqlalchemy.orm import Session
+        from .. import models, schemas
+        from ..database import get_db
+        router = APIRouter()
+        @router.post("/goods", response_model=schemas.Goods)
+        def create_good(good: schemas.GoodsCreate, db: Session = Depends(get_db)):
+            db_good = models.Goods(**good.dict())
+            db.add(db_good)
+            db.commit()
+            db.refresh(db_good)
+            return db_good
+      shops.py <exist>:|
+        from fastapi import APIRouter, Depends, HTTPException
+        from sqlalchemy.orm import Session
+        from .. import models, schemas
+        from ..database import get_db
+        router = APIRouter()
+        @router.post("/shops", response_model=schemas.Shop)
+        def create_shop(shop: schemas.ShopCreate, db: Session = Depends(get_db)):
+            db_shop = models.Shop(**shop.dict())
+            db.add(db_shop)
+            db.commit()
+            db.refresh(db_shop)
+            return db_shop
+      stock.py <exist>:|
+        from fastapi import APIRouter, Depends, HTTPException
+        from sqlalchemy.orm import Session
+        from .. import models, schemas
+        from ..database import get_db
+        router = APIRouter()
+        @router.post("/stock", response_model=schemas.Stock)
+        def create_stock(stock: schemas.StockCreate, db: Session = Depends(get_db)):
+            db_stock = models.Stock(**stock.dict())
+            db.add(db_stock)
+            db.commit()
+            db.refresh(db_stock)
+            return db_stock

@@ -51,29 +51,30 @@ vhdl_project
     
     # Analyze (compile) all VHDL files
     analyze:
-    	ghdl -a $(GHDL_STD) --work=work $(SRC) 
-    	ghdl -a $(GHDL_STD) --work=work $(TB_DIR)/*.vhd
+      ghdl -a $(GHDL_STD) --work=work $(SRC) 
+      ghdl -a $(GHDL_STD) --work=work $(TB_DIR)/*.vhd
     
     # Elaborate top-level testbench
     elab: analyze
-    	ghdl -e $(GHDL_STD) --work=work $(TOP)
+      ghdl -e $(GHDL_STD) --work=work $(TOP)
     
     # Run simulation and generate waveform
     run: elab
-    	mkdir -p $(WAVE_DIR)
-    	ghdl -r $(GHDL_STD) --work=work $(TOP) --stop-time=$(SIM_TIME) --wave=$(WAVE_DIR)/$(TOP).ghw
+      mkdir -p $(WAVE_DIR)
+      ghdl -r $(GHDL_STD) --work=work $(TOP) --stop-time=$(SIM_TIME) --wave=$(WAVE_DIR)/$(TOP).ghw
     
     # Launch GTKWave
     wave:
-    	@if [ -f $(WAVE_DIR)/$(TOP).gtkw ]; then \
-    		gtkwave $(WAVE_DIR)/$(TOP).ghw $(WAVE_DIR)/$(TOP).gtkw & \
-    	else \
-    		gtkwave $(WAVE_DIR)/$(TOP).ghw & \
-    	fi
+      @if [ -f $(WAVE_DIR)/$(TOP).gtkw ]; then \
+        gtkwave $(WAVE_DIR)/$(TOP).ghw $(WAVE_DIR)/$(TOP).gtkw & \
+      else \
+        gtkwave $(WAVE_DIR)/$(TOP).ghw & \
+      fi
     
     # Clean all generated files
     clean:
-    	rm -f *.o *.cf $(TB_DIR)/*.o $(TB_DIR)/*.cf $(TOP) $(WAVE_DIR)/*.ghw
+      rm -f *.o *.cf $(TB_DIR)/*.o $(TB_DIR)/*.cf $(TOP) $(WAVE_DIR)/*.ghw
+    
     # run "make clean" to remove all generated files
     # run "make TOP=entityName" to compile, elaborate, run and view waveforms
 
@@ -106,62 +107,62 @@ vhdl_project
       
       architecture TB_ARCHITECTURE of fa_tb is
       
-      	-- Component declaration of the tested unit
-      	component fa
-      		port(
-      			A    : in  STD_LOGIC;
-      			B    : in  STD_LOGIC;
-      			Cin  : in  STD_LOGIC;
-      			Sum  : out STD_LOGIC;
-      			Cout : out STD_LOGIC
-      		);
-      	end component;
+        -- Component declaration of the tested unit
+        component fa
+          port(
+            A    : in  STD_LOGIC;
+            B    : in  STD_LOGIC;
+            Cin  : in  STD_LOGIC;
+            Sum  : out STD_LOGIC;
+            Cout : out STD_LOGIC
+          );
+        end component;
       
-      	-- Stimulus signals
-      	signal A    : STD_LOGIC := '0';
-      	signal B    : STD_LOGIC := '0';
-      	signal Cin  : STD_LOGIC := '0';
-      	signal Sum  : STD_LOGIC;
-      	signal Cout : STD_LOGIC;
+        -- Stimulus signals
+        signal A    : STD_LOGIC := '0';
+        signal B    : STD_LOGIC := '0';
+        signal Cin  : STD_LOGIC := '0';
+        signal Sum  : STD_LOGIC;
+        signal Cout : STD_LOGIC;
       
       begin
       
-      	-- Unit Under Test port map
-      	UUT : fa
-      		port map (
-      			A    => A,
-      			B    => B,
-      			Cin  => Cin,
-      			Sum  => Sum,
-      			Cout => Cout
-      		);
+        -- Unit Under Test port map
+        UUT : fa
+          port map (
+            A    => A,
+            B    => B,
+            Cin  => Cin,
+            Sum  => Sum,
+            Cout => Cout
+          );
       
-      	-- Stimulus process
-      	stim_proc: process
-      	begin
-      		-- Try all 8 combinations
-      		A <= '0'; B <= '0'; Cin <= '0'; wait for 10 ns;
-      		A <= '0'; B <= '0'; Cin <= '1'; wait for 10 ns;
-      		A <= '0'; B <= '1'; Cin <= '0'; wait for 10 ns;
-      		A <= '0'; B <= '1'; Cin <= '1'; wait for 10 ns;
-      		A <= '1'; B <= '0'; Cin <= '0'; wait for 10 ns;
-      		A <= '1'; B <= '0'; Cin <= '1'; wait for 10 ns;
-      		A <= '1'; B <= '1'; Cin <= '0'; wait for 10 ns;
-      		A <= '1'; B <= '1'; Cin <= '1'; wait for 10 ns;
+        -- Stimulus process
+        stim_proc: process
+        begin
+          -- Try all 8 combinations
+          A <= '0'; B <= '0'; Cin <= '0'; wait for 10 ns;
+          A <= '0'; B <= '0'; Cin <= '1'; wait for 10 ns;
+          A <= '0'; B <= '1'; Cin <= '0'; wait for 10 ns;
+          A <= '0'; B <= '1'; Cin <= '1'; wait for 10 ns;
+          A <= '1'; B <= '0'; Cin <= '0'; wait for 10 ns;
+          A <= '1'; B <= '0'; Cin <= '1'; wait for 10 ns;
+          A <= '1'; B <= '1'; Cin <= '0'; wait for 10 ns;
+          A <= '1'; B <= '1'; Cin <= '1'; wait for 10 ns;
       
-      		-- Stop simulation
-      		wait;
-      	end process;
+          -- Stop simulation
+          wait;
+        end process;
       
       end TB_ARCHITECTURE;
       
       -- Configuration
       configuration TESTBENCH_FOR_fa of fa_tb is
-      	for TB_ARCHITECTURE
-      		for UUT : fa
-      			use entity work.fa(behavioral);  
-      		end for;
-      	end for;
+        for TB_ARCHITECTURE
+          for UUT : fa
+            use entity work.fa(behavioral);  
+          end for;
+        end for;
       end TESTBENCH_FOR_fa;
   vhdl_ls.toml:|
     [workspace]

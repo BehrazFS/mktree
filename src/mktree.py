@@ -85,7 +85,7 @@ def parse_entry(line: str) -> Tuple[str, Optional[str]]:
 def get_file_folder_sets():
     """ Load hidden folders and special files from config JSON. """
     global HIDDEN_FOLDERS, SPECIAL_FILES
-    json_config_path = os.path.join(project_path, "src/configs/file_types.json")
+    json_config_path = os.path.join(project_path, "src","configs","file_types.json")
     with open(json_config_path, 'r') as f:
         config = json.load(f)
     HIDDEN_FOLDERS = set(config.get("hiddenFolders", []))
@@ -111,6 +111,9 @@ def read_multiline_content(lines: List[str], start_index: int, base_indent: int)
     i: int = start_index
     while i < len(lines):
         line: str = lines[i]
+        if line.strip() == "":
+            i += 1
+            continue
         # stop if dedented
         if count_leading_spaces(line) // 2 <= base_indent:
             break
