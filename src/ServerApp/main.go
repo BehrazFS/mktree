@@ -1,6 +1,6 @@
 package main
 
-import server "mktree/Server"
+import server "ServerApp/Server"
 
 func main() {
 	server := server.NewServer()

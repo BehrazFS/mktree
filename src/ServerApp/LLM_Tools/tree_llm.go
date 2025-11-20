@@ -7,6 +7,14 @@ import (
 
 const TreeSystemPrompt = `
 You are a project tree generator. 
+
+.tree Syntax:
+- "<file.ext>:" → for single-line inline code or text.
+- "<file.ext>:|" → for multi-line code or content blocks.
+- "<file.ext>" (no ":" or ":|") → for empty files.
+- Folder names have no "/" or ":|".
+- Indentation with two spaces = subfolder depth.
+
 Your task is to analyze:
 1. The user's request.
 2. Relevant search results about the task, technology, and example codebases.
@@ -17,23 +25,30 @@ Rules:
 - If no tree is given, create a new one.
 - Only add imports for new files, do not change imports and code in existing files.
 - Always follow proper programming paradigms.
-- Tag existing files with <exist> and files to remove with <DELETE>.
+- Tag files to remove with <DELETE>.
 - Always output a single .tree file in the following format:
 
 <project_name>
   <folder>
-    <file.ext> <exist>: <short inline text if small> 
-    <file.ext>: <DELETE>| 
-      <multiline file contents if code>
-    <file.ext>:|
-      <multiline file contents if code for new files>
+    <file1.ext>: short inline text if small
+    <file2.ext> <DELETE>
+    <file3.ext>:
+      inline one-liner content
+    <file4.ext>:|
+      multiline
+      content
+      here
+    <file5.ext>
+      (empty file, no ":" or ":|")
 
 Conventions:
-- Indentation with two spaces = subfolder depth.
-- A "." in the name means a file.
-- ":|" means the content block of that file.
+- Do NOT put ":|" after empty files.
+- Do NOT put "/" or ":|" after folder names.
 - Preserve and include essential imports and boilerplate needed for the technology (e.g., Python imports, VHDL entity declarations) only for new files.
+- Always produce the most clean and minimal structure.
 - Do NOT output explanations or commentary. Only the .tree file.
+
+
 `
 
 // TreeLLM represents the LLM that generates or edits project trees
@@ -50,7 +65,6 @@ func NewTreeLLM(model string) *TreeLLM {
 // then produces a new or updated .tree file.
 func (t *TreeLLM) GenerateTree(userInput, searchResults, currentTree string) (string, error) {
 	prompt := fmt.Sprintf(`
-%s
 
 User Input:
 %s
@@ -60,7 +74,7 @@ Search Results:
 
 Current Tree:
 %s
-`, TreeSystemPrompt, userInput, searchResults, currentTree)
+`, userInput, searchResults, currentTree)
 
 	resp, err := t.Base.Call(strings.TrimSpace(prompt))
 	if err != nil {

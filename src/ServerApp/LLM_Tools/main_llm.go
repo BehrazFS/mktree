@@ -5,7 +5,7 @@ import (
 	"log"
 )
 
-func AgentProcess(log *log.Logger, user_query string, curr_tree string, op_type string, req_id string) (string, string, error) {
+func AgentProcess(log *log.Logger, curr_tree string, user_query string, op_type string, req_id string) (string, string, error) {
 
 	log.Printf("[req_id=%s] The Tree generation is started", req_id)
 
@@ -26,7 +26,7 @@ func AgentProcess(log *log.Logger, user_query string, curr_tree string, op_type 
 		return "", "", err
 	}
 
-	treellm := NewTreeLLM("qwen-3-coder-480b")
+	treellm := NewTreeLLM("zai-glm-4.6")
 	log.Printf("[req_id=%s] Trimming done. Now generating tree...", req_id)
 	tree, err := treellm.GenerateTree(user_query, fmt.Sprintf("%v", trimmed), curr_tree)
 	if err != nil {
@@ -36,7 +36,8 @@ func AgentProcess(log *log.Logger, user_query string, curr_tree string, op_type 
 
 	log.Printf("[req_id=%s] The Tree has been generated", req_id)
 
-	tracker := NewTrackerLLM("qwen-3-235b-a22b-instruct-2507")
+	tracker := NewHashTracker()
+	log.Printf("[req_id=%s] Comparing project trees...", req_id)
 	changes, err := tracker.TrackChanges(curr_tree, tree)
 	if err != nil {
 		log.Printf("[req_id=%s] Error: %v", req_id, err)
