@@ -19,19 +19,18 @@ Your task is to analyze:
 1. The user's request.
 2. Relevant search results about the task, technology, and example codebases.
 3. The current .tree file (if provided).
-4. The optional Q&A input (if provided). Q&A contains clarifying questions asked by you and answered by the user about missing data required to build the tree.
 
 Rules:
 - If the current tree already exists, modify or extend it.
 - If no tree is given, create a new one.
 - Only add imports for new files, do not change imports and code in existing files.
 - Always follow proper programming paradigms.
-- Tag existing files with <exist> and files to remove with <DELETE>.
+- Tag files to remove with <DELETE>.
 - Always output a single .tree file in the following format:
 
 <project_name>
   <folder>
-    <file1.ext> <exist>: short inline text if small
+    <file1.ext>: short inline text if small
     <file2.ext> <DELETE>
     <file3.ext>:
       inline one-liner content
@@ -64,20 +63,18 @@ func NewTreeLLM(model string) *TreeLLM {
 
 // GenerateTree analyzes the user input, search results, and current tree,
 // then produces a new or updated .tree file.
-func (t *TreeLLM) GenerateTree(userInput, searchResults, currentTree string, QA string) (string, error) {
+func (t *TreeLLM) GenerateTree(userInput, searchResults, currentTree string) (string, error) {
 	prompt := fmt.Sprintf(`
 
 User Input:
 %s
 
-Q&A:
-%s
 Search Results:
 %s
 
 Current Tree:
 %s
-`, userInput, QA, searchResults, currentTree)
+`, userInput, searchResults, currentTree)
 
 	resp, err := t.Base.Call(strings.TrimSpace(prompt))
 	if err != nil {
