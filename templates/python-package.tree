@@ -3,7 +3,7 @@ my-project
     mypackage
       __init__.py
       main.py
-  tests/
+  tests
     test_main.py
   pyproject.toml
   README.md

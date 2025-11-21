@@ -39,7 +39,15 @@ from kivymd.uix.list import (
     MDListItemLeadingIcon,
     MDListItemSupportingText,
 )
+from pygments.lexer import RegexLexer,bygroups
+from pygments.token import Text, Keyword, Name, String, Number, Operator, Punctuation, Comment
+#-----------------TODO---------------------
+# Define a custom lexer for the tree file format
+# Integrate the lexer with the CodeInput widget in kv file
+# fix Execute in Editor Screen
+# fix Generate in Reverse Screen
 
+#---------- Paths and constants ----------
 project_path = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 CONFIG_PATH = os.path.join(project_path, "src", "configs", ".mktree_gui_config.json")
 LLM_API_URL_PLACEHOLDER = '<INSERT_SERVER_URL_HERE>'
@@ -61,7 +69,45 @@ def show_error(msg, title='Error'):
         buttons=[MDButton(text="Close", on_release=lambda x: dialog.dismiss())]
     )
     dialog.open()
+# ---------- Lexer -------------
+class MyCustomLexer(RegexLexer):
+    name = "TreeFile"
+    aliases = ["treefile"]
+    filenames = ["*.tree"]
+    #TODO : Define tokens and colors for syntax highlighting
+    tokens = {"root": []}
+    # tokens = {
+    #     "root": [
+    #         # File with block content
+    #         (r'^(\s*)([\w\.\-]+):\|$', bygroups(Text, Name.Class), 'file_content'),
 
+    #         # File with inline content
+    #         (r'^(\s*)([\w\.\-]+):\s*(.*)$', bygroups(Text, Name.Class, String)),
+
+    #         # Directory
+    #         (r'^(\s*)([\w\.\-]+)$', bygroups(Text, Name.Namespace)),
+
+    #         # Anything else
+    #         (r'.+\n?', Text),
+    #     ],
+
+    #     "file_content": [
+    #         # Indented lines = file content
+    #         (r'^(\s+)(.*)$', bygroups(Text, String)),
+
+    #         # Blank line
+    #         (r'^\s*\n', Text),
+
+    #         # Dedent / end of block
+    #         (r'^[^\s].*$', Text, '#pop'),
+    #     ],
+    # }
+    # token_colors = {
+    #     'Name.Namespace': (0.2, 0.6, 1, 1),  # blue for directories
+    #     'Name.Class': (0, 1, 0, 1),          # green for files
+    #     'String': (1, 0.8, 0, 1),            # yellow for file content / inline text
+    # }
+my_lexer = MyCustomLexer()
 # ---------- Settings ----------
 class Settings:
     def __init__(self, path=CONFIG_PATH):
@@ -70,6 +116,7 @@ class Settings:
             'llm_api_url': LLM_API_URL_PLACEHOLDER,
             'preview_colored': True,
             'editor_font_size': 14,
+            "cerebras_api_key": "",
         }
         self.load()
 
@@ -80,14 +127,36 @@ class Settings:
                     data = json.load(f)
                     self.data.update(data)
             except Exception as e:
-                show_error(f'Failed to load settings.\n{e}')
+                try:
+                    MDSnackbar(
+                        MDSnackbarText(
+                            text="Failed to load settings.",
+                        ),
+                        y=dp(24),
+                        pos_hint={"center_x": 0.5},
+                        size_hint_x=0.8,
+                        duration=1.0 
+                    ).open()
+                except Exception:
+                    pass
 
     def save(self):
         try:
             with open(self.path, 'w', encoding='utf-8') as f:
                 json.dump(self.data, f, indent=2)
         except Exception as e:
-            show_error(f'Failed to save settings.\n{e}')
+            try:
+                MDSnackbar(
+                    MDSnackbarText(
+                        text="Failed to save settings.",
+                    ),
+                    y=dp(24),
+                    pos_hint={"center_x": 0.5},
+                    size_hint_x=0.8,
+                    duration=1.0 
+                ).open()
+            except Exception:
+                pass
 
 
 settings = Settings()
@@ -224,38 +293,37 @@ class LLMGeneratorScreen(MDScreen):
         show_error(f'LLM request failed:\n{err}')
 
 class ReverseScreen(MDScreen):
-    chooser = ObjectProperty(None)
-    generated = ObjectProperty(None)
+    path_text= ObjectProperty(None)
 
-    def pick_dir_and_reverse(self):
-        path = self.chooser.path
-        if not path:
-            show_error('Select a directory first')
-            return
-        threading.Thread(target=self._reverse_thread, args=(path,), daemon=True).start()
+    # def pick_dir_and_reverse(self):
+    #     path = self.chooser.path
+    #     if not path:
+    #         show_error('Select a directory first')
+    #         return
+    #     threading.Thread(target=self._reverse_thread, args=(path,), daemon=True).start()
 
-    def _reverse_thread(self, path):
-        # This assumes mktree is available as a Python module in PATH or via alias
-        # We'll call: python -m mktree <dir> --reverse --no-content
-        try:
-            cmd = ['python', '-m', 'mktree', path, '--reverse', '--no-content']
-            proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
-            if proc.returncode != 0:
-                out = proc.stderr or proc.stdout
-                self._on_reverse_error(out)
-            else:
-                out = proc.stdout
-                self._on_reverse_success(out)
-        except Exception as e:
-            self._on_reverse_error(str(e))
+    # def _reverse_thread(self, path):
+    #     # This assumes mktree is available as a Python module in PATH or via alias
+    #     # We'll call: python -m mktree <dir> --reverse --no-content
+    #     try:
+    #         cmd = ['python', '-m', 'mktree', path, '--reverse', '--no-content']
+    #         proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
+    #         if proc.returncode != 0:
+    #             out = proc.stderr or proc.stdout
+    #             self._on_reverse_error(out)
+    #         else:
+    #             out = proc.stdout
+    #             self._on_reverse_success(out)
+    #     except Exception as e:
+    #         self._on_reverse_error(str(e))
 
-    @mainthread
-    def _on_reverse_success(self, text):
-        self.generated.text = text
+    # @mainthread
+    # def _on_reverse_success(self, text):
+    #     self.generated.text = text
 
-    @mainthread
-    def _on_reverse_error(self, text):
-        show_error(f'Reverse failed:\n{text}')
+    # @mainthread
+    # def _on_reverse_error(self, text):
+    #     show_error(f'Reverse failed:\n{text}')
 
 class TemplatesScreen(MDScreen):
     templates_list = ObjectProperty(None)
@@ -285,12 +353,14 @@ class SettingsScreen(MDScreen):
     url_input_text = StringProperty("")
     preview_colored = BooleanProperty(True)
     editor_font_size = NumericProperty(14)
+    cerebras_api_key = StringProperty("")
 
     def on_kv_post(self, base_widget):
         app = MDApp.get_running_app()
         self.url_input_text = app.settings.data.get("llm_api_url", "")
         self.preview_colored = app.settings.data.get("preview_colored", True)
         self.editor_font_size = app.settings.data.get("editor_font_size", 14)
+        self.cerebras_api_key = app.settings.data.get("cerebras_api_key", "")
 
     def toggle_preview(self):
         self.preview_colored = not self.preview_colored
@@ -298,6 +368,7 @@ class SettingsScreen(MDScreen):
     def save_settings(self):
         settings.data['llm_api_url'] = self.url_input_text
         settings.data['preview_colored'] = self.preview_colored
+        settings.data['cerebras_api_key'] = self.cerebras_api_key
         try:
             settings.data['editor_font_size'] = int(self.editor_font_size)
         except Exception:
@@ -328,6 +399,8 @@ class MkTree(MDApp):
             select_path=self.select_path,
             ext = [".tree"],
         )
+        self.mode_ = "open_file"
+        self.lexer = my_lexer
 
 
     def build(self):
@@ -338,7 +411,8 @@ class MkTree(MDApp):
         return Builder.load_file('mktree_gui.kv')
     def on_stop(self):
         settings.save()
-    def file_manager_open(self):
+    def file_manager_open(self,mode:str="open_file"):
+        self.mode_ = mode
         self.file_manager.show(os.path.abspath("."))
         self.manager_open = True
 
@@ -360,9 +434,14 @@ class MkTree(MDApp):
             size_hint_x=0.8,
             duration=1.0 
         ).open()
-        editor_screen = MDApp.get_running_app().root.screen_manager.get_screen('editor')
-        editor_screen.editor.text = Path(path).read_text(encoding='utf-8')
-        MDApp.get_running_app().root.screen_manager.current = "editor"
+        if self.mode_ == "open_file":
+            editor_screen = MDApp.get_running_app().root.screen_manager.get_screen('editor')
+            editor_screen.editor.text = Path(path).read_text(encoding='utf-8')
+            MDApp.get_running_app().root.screen_manager.current = "editor"
+        elif self.mode_ == "reverse_dir":
+            reverse_screen = MDApp.get_running_app().root.screen_manager.get_screen('reverse')
+            reverse_screen.path_text.text = path
+            print(f"Selected dir: {path}")
     def exit_manager(self, *args):
         '''Called when the user reaches the root of the directory tree.'''
         self.manager_open = False
